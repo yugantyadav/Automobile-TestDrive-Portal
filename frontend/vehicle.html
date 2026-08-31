@@ -75,7 +75,7 @@ async function loadVehicle(){
       <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:32px">
         <div><img src="${v.image_url}" alt="${v.brand_name} ${v.model}" style="width:100%;height:420px;object-fit:cover;border:1px solid var(--color-hairline-soft)"/></div>
         <div>
-          <div class="caption-uppercase" style="color:var(--color-brand-primary)">${v.brand_name} • ${v.category}</div>
+          <div class="caption-uppercase" style="color:var(--color-brand-primary);display:flex;align-items:center;gap:8px"><img src="${v.brand_logo}" alt="${v.brand_name} logo" style="height:20px;max-width:60px;object-fit:contain;background:white;padding:2px;border:1px solid var(--color-hairline-soft)"/> ${v.brand_name} • ${v.category}</div>
           <h1 class="display-md" style="margin:8px 0">${v.brand_name} ${v.model}</h1>
           <div class="card-price" style="font-size:28px">${formatINR(v.price)} <span>on-road Navi Mumbai</span></div>
           <div class="divider"></div>

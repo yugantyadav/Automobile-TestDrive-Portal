@@ -67,17 +67,7 @@
   <div class="hero-progress"><span class="active"></span><span></span><span></span></div>
 </section>
 
-<div class="brand-strip" id="brands">
-  <span class="brand-chip">Maruti Suzuki</span>
-  <span class="brand-chip">Hyundai</span>
-  <span class="brand-chip">Tata</span>
-  <span class="brand-chip">Mahindra</span>
-  <span class="brand-chip">Honda</span>
-  <span class="brand-chip">Toyota</span>
-  <span class="brand-chip">Kia</span>
-  <span class="brand-chip">BMW</span>
-  <span class="brand-chip">Mercedes</span>
-</div>
+<div class="brand-strip" id="brands" style="min-height:72px;display:flex;align-items:center;justify-content:center"><span class="caption muted">Loading brand logos…</span></div>
 
 <section class="section">
   <div class="section-narrow">
@@ -188,7 +178,7 @@
     const grid=document.getElementById('featuredGrid');
     grid.innerHTML = vehicles.map(v=> `
       <article class="card">
-        <div class="card-img"><img src="${v.image_url}" alt="${v.brand_name} ${v.model}" loading="lazy"/><span class="card-badge">${v.brand_name}</span></div>
+        <div class="card-img"><img src="${v.image_url}" alt="${v.brand_name} ${v.model}" loading="lazy"/><span class="card-badge" style="display:flex;align-items:center;gap:6px"><img src="${v.brand_logo}" alt="${v.brand_name} logo" style="height:14px;max-width:40px;object-fit:contain;background:white;padding:1px"/> ${v.brand_name}</span></div>
         <div class="card-body">
           <div class="card-eyebrow">${v.fuel_type} • ${v.transmission}</div>
           <h3 class="card-title">${v.brand_name} ${v.model}</h3>
@@ -200,6 +190,17 @@
           </div>
         </div>
       </article>
+    `).join('');
+  }catch(e){ console.error(e); }
+  // Brand logos strip (Wikimedia transparent PNG, demo data)
+  try{
+    const {brands}= await VehicleAPI.brands();
+    const b=document.getElementById('brands');
+    b.innerHTML = brands.map(br=> `
+      <a href="vehicles.html" title="${br.name}" style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:80px">
+        <img src="${br.logo_url}" alt="${br.name} logo" loading="lazy" style="height:36px;max-width:90px;object-fit:contain;filter:grayscale(0);background:white;padding:4px;border:1px solid var(--color-hairline-soft)"/>
+        <span class="caption" style="font-size:10px;letter-spacing:0.6px;text-transform:uppercase">${br.name}</span>
+      </a>
     `).join('');
   }catch(e){ console.error(e); }
   // Showrooms
