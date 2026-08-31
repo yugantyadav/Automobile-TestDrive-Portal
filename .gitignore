@@ -8,3 +8,5 @@ backend/database.sqlite
 .env
 npm-debug.log
 dist/
+backend/database.sqlite-shm
+backend/database.sqlite-wal
