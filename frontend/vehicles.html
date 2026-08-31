@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vehicles — ATDP</title>
+<link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+<div id="preloader" aria-hidden="true">
+  <div class="preloader-logo">
+    <div style="display:flex;align-items:center;gap:16px"><div class="preloader-wings"><span class="wing"></span></div><div class="preloader-icon"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></div><div class="preloader-wings"><span class="wing"></span></div></div>
+    <div class="preloader-atdp"><span>A</span><span>T</span><span>D</span><span>P</span></div>
+    <div class="preloader-subtitle">Navi Mumbai • Test Drive Portal</div>
+  </div>
+</div>
+<div id="toast-root"></div>
+<header class="header">
+  <div class="header-left">
+    <button class="hamburger" id="hamburger"><span></span></button>
+    <a href="index.html" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></span> ATDP</a>
+    <nav class="nav-links"><a href="index.html">Home</a><a href="vehicles.html">Vehicles</a></nav>
+  </div>
+  <div class="header-right"><div id="authLinks"><a href="login.html" class="btn btn-secondary">Login</a><a href="register.html" class="btn btn-primary">Register</a></div><div id="userNav" class="hidden"></div></div>
+</header>
+<nav class="mobile-nav" id="mobileNav"><a href="index.html">Home</a><a href="vehicles.html">Vehicles</a><div id="mobileAuth"></div></nav>
+
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="eyebrow">Navi Mumbai Inventory • 24 Vehicles • 10 Brands</div>
+    <h1 class="display-lg" style="margin:8px 0 16px">Browse Vehicles</h1>
+    <p class="body-sm muted" style="max-width:600px">All prices on-road Navi Mumbai. Filter by brand, fuel, price and transmission. Showroom auto-assigned on booking.</p>
+  </div>
+</section>
+
+<section class="section" style="padding-top:24px">
+  <div class="container">
+    <div class="filters">
+      <div class="filter-group"><label>Search</label><input id="fSearch" placeholder="Model or brand, e.g., Thar, BMW"/></div>
+      <div class="filter-group"><label>Brand</label><select id="fBrand"><option value="">All Brands</option></select></div>
+      <div class="filter-group"><label>Fuel</label><select id="fFuel"><option value="">All Fuels</option><option>Petrol</option><option>Diesel</option><option>Hybrid</option></select></div>
+      <div class="filter-group"><label>Max Price</label><select id="fPrice"><option value="">Any Price</option><option value="1000000">≤ ₹10 Lakh</option><option value="2000000">≤ ₹20 Lakh</option><option value="4000000">≤ ₹40 Lakh</option><option value="7000000">≤ ₹70 Lakh</option></select></div>
+      <div class="filter-group"><label>Status</label><select id="fStatus"><option value="">Available only</option><option value="available">Available</option><option value="unavailable">Unavailable</option></select></div>
+      <div class="filter-group" style="flex:0"><button id="fSearchBtn" class="btn btn-primary" style="margin-top:18px">Search</button></div>
+      <div class="filter-group" style="flex:0"><button id="fReset" class="btn btn-secondary" style="margin-top:18px">Reset</button></div>
+    </div>
+    <div id="resultInfo" class="caption" style="margin-bottom:16px"></div>
+    <div class="grid grid-3" id="vehicleGrid"></div>
+    <div id="pagination" class="text-center mt-24"></div>
+  </div>
+</section>
+
+<footer class="footer"><div class="footer-bottom"><span>© 2026 ATDP</span><a href="index.html">← Back to Home</a></div></footer>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+let currentPage=1;
+async function loadBrands(){
+  try{
+    const {brands}= await VehicleAPI.brands();
+    const sel=document.getElementById('fBrand');
+    brands.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=b.name; sel.appendChild(o); });
+    // preselect from URL
+    const params=new URLSearchParams(location.search);
+    if(params.get('brand_id')) sel.value=params.get('brand_id');
+  }catch{}
+}
+function getFilters(page=1){
+  return {
+    search: document.getElementById('fSearch').value.trim()||undefined,
+    brand_id: document.getElementById('fBrand').value||undefined,
+    max_price: document.getElementById('fPrice').value||undefined,
+    status: document.getElementById('fStatus').value||undefined,
+    category: new URLSearchParams(location.search).get('category')||undefined,
+    page, limit:9
+  };
+}
+async function fetchAndRender(page=1){
+  currentPage=page;
+  const params=getFilters(page);
+  // add fuel filter client side if needed via search? We'll filter via fuel_type manually after fetch if selected
+  const fuelVal=document.getElementById('fFuel').value;
+  try{
+    const {vehicles, pagination}= await VehicleAPI.list(params);
+    let list=vehicles;
+    if(fuelVal) list=list.filter(v=> v.fuel_type===fuelVal);
+    document.getElementById('resultInfo').textContent=`${pagination.total} vehicle(s) • Page ${pagination.page} of ${pagination.totalPages||1}`;
+    const grid=document.getElementById('vehicleGrid');
+    if(!list.length){ grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;border:1px dashed var(--color-hairline)">No vehicles match your filters.</div>`; }
+    else {
+      grid.innerHTML=list.map(v=> `
+        <article class="card">
+          <div class="card-img"><img src="${v.image_url}" alt="${v.brand_name} ${v.model}" loading="lazy"/><span class="card-badge">${v.brand_name}</span><span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);color:white;font-size:11px;padding:4px 8px">${v.status}</span></div>
+          <div class="card-body">
+            <div class="card-eyebrow">${v.fuel_type} • ${v.transmission} • ${v.mileage}</div>
+            <h3 class="card-title">${v.brand_name} ${v.model}</h3>
+            <div class="card-meta">${v.engine} • ${v.horsepower} HP • ${v.top_speed}</div>
+            <div class="card-price">${formatINR(v.price)} <span>on-road</span></div>
+            <div class="card-actions"><a href="vehicle.html?id=${v.id}" class="btn btn-primary">Book Test Drive</a><a href="vehicle.html?id=${v.id}" class="btn btn-secondary">View</a></div>
+          </div>
+        </article>
+      `).join('');
+    }
+    // pagination
+    const pag=document.getElementById('pagination');
+    let html='';
+    if(pagination.totalPages>1){
+      for(let i=1;i<=pagination.totalPages;i++){
+        html+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="fetchAndRender(${i})">${i}</button>`;
+      }
+    }
+    pag.innerHTML=html;
+  }catch(e){ toast(e.message,'error'); }
+}
+document.getElementById('fSearchBtn').addEventListener('click',()=> fetchAndRender(1));
+document.getElementById('fReset').addEventListener('click',()=>{
+  document.getElementById('fSearch').value=''; document.getElementById('fBrand').value='';
+  document.getElementById('fFuel').value=''; document.getElementById('fPrice').value='';
+  document.getElementById('fStatus').value='';
+  fetchAndRender(1);
+});
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await loadBrands();
+  // check query string for category/search
+  const qs=new URLSearchParams(location.search);
+  if(qs.get('category')){ /* handled via getFilters */ }
+  fetchAndRender(1);
+});
+</script>
+</body>
+</html>

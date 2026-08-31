@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin — ATDP</title>
+<link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="preloader"><div class="preloader-logo"><div style="display:flex;align-items:center;gap:16px"><div class="preloader-wings"><span class="wing"></span></div><div class="preloader-icon"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></div><div class="preloader-wings"><span class="wing"></span></div></div><div class="preloader-atdp"><span>A</span><span>T</span><span>D</span><span>P</span></div><div class="preloader-subtitle">Admin Panel • Navi Mumbai</div></div></div>
+<div id="toast-root"></div>
+<header class="header"><div class="header-left"><button class="hamburger" id="hamburger"><span></span></button><a href="index.html" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></span> ATDP Admin</a><nav class="nav-links"><a href="vehicles.html">Vehicles</a><a href="admin.html">Dashboard</a></nav></div><div class="header-right"><div id="authLinks" class="hidden"></div><div id="userNav"></div></div></header>
+<nav class="mobile-nav" id="mobileNav"><a href="index.html">Home</a><a href="admin.html">Admin</a><div id="mobileAuth"></div></nav>
+
+<main class="section">
+  <div class="container">
+    <div class="eyebrow">Administrator</div>
+    <h1 class="display-md">Admin Dashboard</h1>
+    <p class="body-sm muted">Manage inventory, showrooms, users and bookings. All times 09:00–18:00.</p>
+
+    <div class="stats mt-24" id="dashStats"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px" class="mt-24">
+      <div style="background:white;border:1px solid var(--color-hairline-soft);padding:20px">
+        <h4 class="title-md" style="font-size:14px">Bookings by Status</h4>
+        <canvas id="statusChart" height="220"></canvas>
+      </div>
+      <div style="background:white;border:1px solid var(--color-hairline-soft);padding:20px">
+        <h4 class="title-md" style="font-size:14px">Inventory by Brand</h4>
+        <canvas id="brandChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:12px;margin-top:32px;flex-wrap:wrap">
+      <button class="btn btn-primary tabBtn" data-tab="bookings">Bookings</button>
+      <button class="btn btn-secondary tabBtn" data-tab="vehicles">Vehicles</button>
+      <button class="btn btn-secondary tabBtn" data-tab="showrooms">Showrooms</button>
+      <button class="btn btn-secondary tabBtn" data-tab="users">Users</button>
+    </div>
+
+    <!-- Bookings Tab -->
+    <div id="tab-bookings" class="tab-panel mt-16">
+      <div style="display:flex;gap:12px;margin-bottom:12px"><select id="bStatus" style="padding:8px"><option value="">All Status</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select><button class="btn btn-primary btn-small" onclick="loadAdminBookings(1)">Filter</button></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>User</th><th>Vehicle</th><th>Showroom</th><th>Date/Slot</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminBookings"></tbody></table></div>
+      <div id="bPag" class="text-center mt-16"></div>
+    </div>
+
+    <!-- Vehicles Tab -->
+    <div id="tab-vehicles" class="tab-panel hidden mt-16">
+      <div style="background:white;border:1px solid var(--color-hairline-soft);padding:20px;margin-bottom:16px">
+        <h4 class="title-md" style="font-size:14px">Add Vehicle</h4>
+        <form id="vehicleForm" class="mt-16" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field"><label>Brand</label><select id="vBrand" required></select></div>
+          <div class="field"><label>Model</label><input id="vModel" required placeholder="e.g., Swift ZXi"/></div>
+          <div class="field"><label>Price (₹)</label><input type="number" id="vPrice" required/></div>
+          <div class="field"><label>Image URL</label><input id="vImage" placeholder="https://…"/></div>
+          <div class="field"><label>Engine</label><input id="vEngine" placeholder="1.2L Petrol"/></div>
+          <div class="field"><label>Fuel</label><select id="vFuel"><option>Petrol</option><option>Diesel</option><option>Hybrid</option><option>Electric</option><option>CNG</option></select></div>
+          <div class="field"><label>Transmission</label><input id="vTrans" placeholder="Automatic"/></div>
+          <div class="field"><label>Status</label><select id="vStatus"><option value="available">available</option><option value="unavailable">unavailable</option><option value="maintenance">maintenance</option></select></div>
+          <div class="field" style="grid-column:1/-1"><label>Description</label><textarea id="vDesc" rows="2"></textarea></div>
+          <div style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Add Vehicle</button> <button type="button" class="btn btn-secondary" onclick="loadVehiclesAdmin()">Refresh List</button></div>
+        </form>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Brand / Model</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminVehicles"></tbody></table></div>
+    </div>
+
+    <!-- Showrooms Tab -->
+    <div id="tab-showrooms" class="tab-panel hidden mt-16">
+      <div style="background:white;border:1px solid var(--color-hairline-soft);padding:20px;margin-bottom:16px">
+        <h4 class="title-md" style="font-size:14px">Add Showroom</h4>
+        <form id="showroomForm" class="mt-16" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field"><label>Name</label><input id="sName" required placeholder="e.g., Nexa Vashi"/></div>
+          <div class="field"><label>Brand</label><select id="sBrand"><option value="">No brand (multi)</option></select></div>
+          <div class="field" style="grid-column:1/-1"><label>Address</label><input id="sAddress" required/></div>
+          <div class="field"><label>City</label><input id="sCity" value="Navi Mumbai" required/></div>
+          <div class="field"><label>State</label><input id="sState" value="Maharashtra" required/></div>
+          <div class="field"><label>Phone</label><input id="sPhone"/></div>
+          <div class="field"><label>Email</label><input id="sEmail" type="email"/></div>
+          <div style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Add Showroom</button></div>
+        </form>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Brand</th><th>City</th><th>Phone</th><th>Actions</th></tr></thead><tbody id="adminShowrooms"></tbody></table></div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="tab-users" class="tab-panel hidden mt-16">
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead><tbody id="adminUsers"></tbody></table></div>
+      <div id="uPag" class="text-center mt-16"></div>
+    </div>
+
+  </div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+let brandCache=[];
+async function ensureAuth(){
+  const token=localStorage.getItem('atdp_token');
+  const user=JSON.parse(localStorage.getItem('atdp_user')||'null');
+  if(!token || !user){ location.href='login.html'; return false; }
+  if(user.role!=='admin'){ toast('Admin access required','error'); setTimeout(()=> location.href='index.html',800); return false; }
+  return true;
+}
+async function loadDashboard(){
+  try{
+    const d=await AdminAPI.dashboard();
+    document.getElementById('dashStats').innerHTML=`
+      <div class="stat"><div class="stat-label">Users</div><div class="stat-value">${d.users}</div><div class="stat-sub">${d.customers} customers</div></div>
+      <div class="stat"><div class="stat-label">Vehicles</div><div class="stat-value">${d.vehicles}</div></div>
+      <div class="stat"><div class="stat-label">Showrooms</div><div class="stat-value">${d.showrooms}</div></div>
+      <div class="stat"><div class="stat-label">Bookings</div><div class="stat-value">${d.bookings}</div><div class="stat-sub">${d.pending} pending • ${d.approved} approved</div></div>
+    `;
+    // charts
+    const ctx1=document.getElementById('statusChart');
+    new Chart(ctx1,{type:'doughnut',data:{labels:['Pending','Approved','Completed','Cancelled'],datasets:[{data:[d.pending,d.approved,d.completed,d.cancelled],backgroundColor:['#F9A825','#2E7D32','#1565C0','#C62828']}]},options:{plugins:{legend:{position:'bottom'}}}});
+    const ctx2=document.getElementById('brandChart');
+    new Chart(ctx2,{type:'bar',data:{labels:d.brandInventory.map(b=>b.brand),datasets:[{label:'Vehicles',data:d.brandInventory.map(b=>b.count),backgroundColor:'#1B6157'}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+    // populate brand selects
+    brandCache = d.brandInventory;
+    // Need full brand list with ids
+    const {brands}=await VehicleAPI.brands();
+    brandCache=brands;
+    const vSel=document.getElementById('vBrand'); vSel.innerHTML=brands.map(b=>`<option value="${b.id}">${b.name} (${b.category})</option>`).join('');
+    const sSel=document.getElementById('sBrand'); sSel.innerHTML='<option value="">No brand (multi)</option>'+brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  }catch(e){ toast(e.message,'error'); }
+}
+async function loadAdminBookings(page=1){
+  const status=document.getElementById('bStatus').value;
+  try{
+    const {bookings, pagination}=await AdminAPI.bookings({status: status||undefined, page, limit:20});
+    document.getElementById('adminBookings').innerHTML=bookings.map(b=> `
+      <tr>
+        <td>${b.id}</td><td>${b.user_name}<br/><span class="caption">${b.user_email}</span></td>
+        <td>${b.brand_name} ${b.vehicle_model}<br/><span class="caption">${formatINR(b.vehicle_price)}</span></td>
+        <td>${b.showroom_name}</td><td>${b.booking_date}<br/>${b.time_slot}</td>
+        <td><span class="badge badge-${b.status}">${b.status}</span></td>
+        <td>
+          <select onchange="updateBookingStatus(${b.id},this.value)" style="padding:4px"><option value="">Change…</option><option value="approved">approve</option><option value="completed">complete</option><option value="cancelled">cancel</option></select>
+          <button class="btn btn-secondary btn-small" style="margin-top:4px" onclick="deleteBooking(${b.id})">Delete</button>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:20px">No bookings</td></tr>`;
+    let h=''; for(let i=1;i<=pagination.totalPages;i++) h+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="loadAdminBookings(${i})">${i}</button>`;
+    document.getElementById('bPag').innerHTML=h;
+  }catch(e){ toast(e.message,'error'); }
+}
+async function updateBookingStatus(id,status){
+  if(!status) return;
+  try{ await BookingAPI.update(id,status); toast(`Booking #${id} → ${status}`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+}
+async function deleteBooking(id){
+  if(!confirm('Delete booking #'+id+'?')) return;
+  try{ const token=localStorage.getItem('atdp_token'); await fetch(`/api/bookings/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}}).then(r=>{ if(!r.ok) throw new Error('Failed'); return r.json();}); toast('Deleted','success'); loadAdminBookings(1);}catch(e){ toast(e.message,'error'); }
+}
+async function loadVehiclesAdmin(){
+  try{
+    const {vehicles}=await VehicleAPI.list({limit:50});
+    document.getElementById('adminVehicles').innerHTML=vehicles.map(v=> `
+      <tr>
+        <td>${v.id}</td><td>${v.brand_name} ${v.model}</td><td>${formatINR(v.price)}</td><td><span class="badge badge-${v.status}">${v.status}</span></td>
+        <td>
+          <select onchange="updateVehicleStatus(${v.id},this.value)" style="padding:4px"><option value="">Status…</option><option value="available">available</option><option value="unavailable">unavailable</option><option value="maintenance">maintenance</option></select>
+          <button class="btn btn-secondary btn-small" onclick="deleteVehicle(${v.id})">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }catch(e){ toast(e.message,'error'); }
+}
+async function updateVehicleStatus(id,status){
+  if(!status) return;
+  const token=localStorage.getItem('atdp_token');
+  await fetch(`/api/vehicles/${id}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({status})}).then(r=>r.json()).then(()=>{toast('Updated','success'); loadVehiclesAdmin();}).catch(e=>toast(e.message,'error'));
+}
+async function deleteVehicle(id){
+  if(!confirm('Delete vehicle #'+id+'?')) return;
+  const token=localStorage.getItem('atdp_token');
+  try{ const r=await fetch(`/api/vehicles/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}}); const data=await r.json(); if(!r.ok) throw new Error(data.message); toast('Vehicle deleted','success'); loadVehiclesAdmin(); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+}
+async function loadShowroomsAdmin(){
+  try{
+    const {showrooms}=await ShowroomAPI.list();
+    document.getElementById('adminShowrooms').innerHTML=showrooms.map(s=> `
+      <tr><td>${s.id}</td><td>${s.name}</td><td>${s.brand_name||'-'}</td><td>${s.city}</td><td>${s.phone||''}</td><td><button class="btn btn-secondary btn-small" onclick="deleteShowroom(${s.id})">Delete</button></td></tr>
+    `).join('');
+  }catch(e){ toast(e.message,'error'); }
+}
+async function deleteShowroom(id){
+  if(!confirm('Delete showroom #'+id+'?')) return;
+  const token=localStorage.getItem('atdp_token');
+  try{ const r=await fetch(`/api/showrooms/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}}); const data=await r.json(); if(!r.ok) throw new Error(data.message); toast('Showroom deleted','success'); loadShowroomsAdmin(); }catch(e){ toast(e.message,'error'); }
+}
+async function loadUsersAdmin(page=1){
+  try{
+    const {users, pagination}=await AdminAPI.users({page,limit:20});
+    document.getElementById('adminUsers').innerHTML=users.map(u=> `
+      <tr><td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td>${new Date(u.created_at).toLocaleDateString()}</td><td><button class="btn btn-secondary btn-small" onclick="deleteUser(${u.id})">Delete</button></td></tr>
+    `).join('');
+    let h=''; for(let i=1;i<=pagination.totalPages;i++) h+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="loadUsersAdmin(${i})">${i}</button>`;
+    document.getElementById('uPag').innerHTML=h;
+  }catch(e){ toast(e.message,'error'); }
+}
+async function deleteUser(id){
+  if(!confirm('Delete user #'+id+'?')) return;
+  const token=localStorage.getItem('atdp_token');
+  try{ const r=await fetch(`/api/admin/users/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}}); const data=await r.json(); if(!r.ok) throw new Error(data.message); toast('User deleted','success'); loadUsersAdmin(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+}
+// Tabs
+document.querySelectorAll('.tabBtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tabBtn').forEach(b=>{ b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
+    btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+    document.querySelectorAll('.tab-panel').forEach(p=> p.classList.add('hidden'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.remove('hidden');
+    if(btn.dataset.tab==='vehicles') loadVehiclesAdmin();
+    if(btn.dataset.tab==='showrooms') loadShowroomsAdmin();
+    if(btn.dataset.tab==='users') loadUsersAdmin(1);
+    if(btn.dataset.tab==='bookings') loadAdminBookings(1);
+  });
+});
+// Forms
+document.getElementById('vehicleForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const token=localStorage.getItem('atdp_token');
+  const payload={
+    brand_id: parseInt(document.getElementById('vBrand').value),
+    model: document.getElementById('vModel').value.trim(),
+    category: 'car',
+    price: parseFloat(document.getElementById('vPrice').value),
+    image_url: document.getElementById('vImage').value.trim()||undefined,
+    engine: document.getElementById('vEngine').value.trim()||undefined,
+    fuel_type: document.getElementById('vFuel').value,
+    transmission: document.getElementById('vTrans').value.trim()||undefined,
+    description: document.getElementById('vDesc').value.trim()||undefined,
+    status: document.getElementById('vStatus').value,
+  };
+  try{ const r=await fetch('/api/vehicles',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.message||JSON.stringify(d.errors)); toast('Vehicle added','success'); e.target.reset(); loadVehiclesAdmin(); loadDashboard(); }catch(err){ toast(err.message,'error'); }
+});
+document.getElementById('showroomForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const token=localStorage.getItem('atdp_token');
+  const payload={
+    name: document.getElementById('sName').value.trim(),
+    brand_id: document.getElementById('sBrand').value ? parseInt(document.getElementById('sBrand').value) : undefined,
+    address: document.getElementById('sAddress').value.trim(),
+    city: document.getElementById('sCity').value.trim(),
+    state: document.getElementById('sState').value.trim(),
+    phone: document.getElementById('sPhone').value.trim()||undefined,
+    email: document.getElementById('sEmail').value.trim()||undefined,
+  };
+  try{ const r=await fetch('/api/showrooms',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.message); toast('Showroom added','success'); e.target.reset(); document.getElementById('sCity').value='Navi Mumbai'; document.getElementById('sState').value='Maharashtra'; loadShowroomsAdmin(); }catch(err){ toast(err.message,'error'); }
+});
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  if(!await ensureAuth()) return;
+  await loadDashboard(); await loadAdminBookings(1);
+});
+</script>
+</body>
+</html>

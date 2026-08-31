@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Login — ATDP</title>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<div id="preloader"><div class="preloader-logo"><div style="display:flex;align-items:center;gap:16px"><div class="preloader-wings"><span class="wing"></span></div><div class="preloader-icon"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></div><div class="preloader-wings"><span class="wing"></span></div></div><div class="preloader-atdp"><span>A</span><span>T</span><span>D</span><span>P</span></div><div class="preloader-subtitle">Navi Mumbai • Test Drive Portal</div></div></div>
+<div id="toast-root"></div>
+<header class="header"><div class="header-left"><button class="hamburger" id="hamburger"><span></span></button><a href="index.html" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></span> ATDP</a></div><div class="header-right"><a href="register.html" class="btn btn-primary">Register</a></div></header>
+<nav class="mobile-nav" id="mobileNav"><a href="index.html">Home</a><a href="vehicles.html">Vehicles</a><div id="mobileAuth"></div></nav>
+
+<main class="section">
+  <div class="form-card">
+    <div class="caption-uppercase" style="color:var(--color-brand-primary)">Welcome Back</div>
+    <h1>Login to ATDP</h1>
+    <p class="sub">Access your test drive bookings and showroom assignments.</p>
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input type="email" id="email" required placeholder="john@example.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="password" required placeholder="••••••••"/></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Login</button>
+    </form>
+    <div class="divider"></div>
+    <div class="caption" style="background:var(--color-bg-off-white);padding:12px;border:1px solid var(--color-hairline-soft)">
+      <strong>Demo Credentials:</strong><br/>
+      Customer: <code>john@example.com / John@123</code><br/>
+      Admin: <code>admin@autoportal.com / Admin@123</code>
+    </div>
+    <p class="caption" style="margin-top:16px;text-align:center">No account? <a href="register.html" style="color:var(--color-brand-primary);text-decoration:underline">Register</a></p>
+  </div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const payload={ email: document.getElementById('email').value.trim(), password: document.getElementById('password').value };
+  try{
+    const {user, token}= await AuthAPI.login(payload);
+    localStorage.setItem('atdp_token', token);
+    localStorage.setItem('atdp_user', JSON.stringify(user));
+    toast('Login successful','success');
+    setTimeout(()=> location.href = user.role==='admin' ? 'admin.html' : 'dashboard.html', 700);
+  }catch(err){ toast(err.message,'error'); }
+});
+</script>
+</body>
+</html>

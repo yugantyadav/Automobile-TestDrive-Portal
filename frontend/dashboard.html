@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dashboard — ATDP</title>
+<link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+<div id="preloader"><div class="preloader-logo"><div style="display:flex;align-items:center;gap:16px"><div class="preloader-wings"><span class="wing"></span></div><div class="preloader-icon"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></div><div class="preloader-wings"><span class="wing"></span></div></div><div class="preloader-atdp"><span>A</span><span>T</span><span>D</span><span>P</span></div><div class="preloader-subtitle">Navi Mumbai • Test Drive Portal</div></div></div>
+<div id="toast-root"></div>
+<header class="header"><div class="header-left"><button class="hamburger" id="hamburger"><span></span></button><a href="index.html" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></span> ATDP</a><nav class="nav-links"><a href="vehicles.html">Browse Vehicles</a><a href="dashboard.html">Dashboard</a></nav></div><div class="header-right"><div id="authLinks" class="hidden"></div><div id="userNav"></div></div></header>
+<nav class="mobile-nav" id="mobileNav"><a href="index.html">Home</a><a href="vehicles.html">Vehicles</a><a href="dashboard.html">Dashboard</a><div id="mobileAuth"></div></nav>
+
+<main class="section">
+  <div class="container">
+    <div class="eyebrow">Customer Portal</div>
+    <h1 class="display-md" style="margin:8px 0 8px">My Dashboard</h1>
+    <p class="body-sm muted" id="welcome"></p>
+
+    <div class="stats mt-24" id="stats"></div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px" class="mt-24">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 class="display-sm" style="font-size:20px">My Bookings</h3>
+          <select id="statusFilter" style="padding:8px 12px;border:1px solid var(--color-hairline)"><option value="">All Status</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Vehicle</th><th>Showroom</th><th>Date • Slot</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="bookingsBody"><tr><td colspan="5" class="muted" style="text-align:center;padding:24px">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="pagination" class="text-center mt-16"></div>
+      </div>
+      <div>
+        <div style="background:white;border:1px solid var(--color-hairline-soft);padding:20px">
+          <h4 class="title-md" style="font-size:14px">My Profile</h4>
+          <div id="profileBox" class="mt-16"></div>
+          <form id="profileForm" class="mt-16">
+            <div class="field"><label>Name</label><input id="pName"/></div>
+            <div class="field"><label>Phone</label><input id="pPhone"/></div>
+            <div class="field"><label>Address</label><input id="pAddress"/></div>
+            <button class="btn btn-primary btn-small" type="submit">Save Profile</button>
+          </form>
+          <div class="divider"></div>
+          <h4 class="title-md" style="font-size:14px">Change Password</h4>
+          <form id="pwdForm" class="mt-16">
+            <div class="field"><label>Current Password</label><input type="password" id="curPwd" required/></div>
+            <div class="field"><label>New Password</label><input type="password" id="newPwd" required/></div>
+            <button class="btn btn-secondary btn-small" type="submit">Change Password</button>
+          </form>
+        </div>
+        <a href="vehicles.html" class="btn btn-primary" style="width:100%;margin-top:16px">Book New Test Drive</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+let currentPage=1;
+async function loadProfile(){
+  try{
+    const {user}= await AuthAPI.profile();
+    document.getElementById('welcome').textContent=`Welcome, ${user.name} • ${user.email} • Navi Mumbai`;
+    document.getElementById('profileBox').innerHTML=`<p class="body-sm"><strong>${user.name}</strong><br/><span class="muted">${user.email} • ${user.role}</span><br/><span class="caption">${user.phone||''} ${user.address||''}</span></p>`;
+    document.getElementById('pName').value=user.name; document.getElementById('pPhone').value=user.phone||''; document.getElementById('pAddress').value=user.address||'';
+  }catch(e){ if(e.message.includes('token')||e.message.includes('Unauthorized')) location.href='login.html'; }
+}
+async function loadBookings(page=1){
+  currentPage=page;
+  const status=document.getElementById('statusFilter').value;
+  try{
+    const {bookings, pagination}= await BookingAPI.list({status: status||undefined, page, limit:10});
+    const tbody=document.getElementById('bookingsBody');
+    if(!bookings.length){ tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px" class="muted">No bookings yet. <a href="vehicles.html" style="color:var(--color-brand-primary);text-decoration:underline">Book one</a></td></tr>`; }
+    else {
+      tbody.innerHTML=bookings.map(b=> `
+        <tr>
+          <td><strong>${b.brand_name} ${b.vehicle_model}</strong><br/><span class="caption">${formatINR(b.vehicle_price)}</span></td>
+          <td class="body-sm">${b.showroom_name}<br/><span class="caption">${b.showroom_city}</span></td>
+          <td>${b.booking_date}<br/><span class="caption">${b.time_slot}</span></td>
+          <td><span class="badge badge-${b.status}">${b.status}</span></td>
+          <td>
+            ${b.status==='pending'||b.status==='approved' ? `<button class="btn btn-secondary btn-small" onclick="cancelBooking(${b.id})">Cancel</button>` : ''}
+            <button class="btn btn-small" style="border:1px solid #E5E5E5;margin-top:4px" onclick="viewBooking(${b.id})">View</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+    // stats
+    const all = await BookingAPI.list({limit:50});
+    const counts={pending:0,approved:0,completed:0,cancelled:0};
+    all.bookings.forEach(b=> counts[b.status]=(counts[b.status]||0)+1);
+    document.getElementById('stats').innerHTML=`
+      <div class="stat"><div class="stat-label">Total Bookings</div><div class="stat-value">${all.pagination.total}</div></div>
+      <div class="stat"><div class="stat-label">Pending</div><div class="stat-value">${counts.pending}</div></div>
+      <div class="stat"><div class="stat-label">Approved</div><div class="stat-value">${counts.approved}</div></div>
+      <div class="stat"><div class="stat-label">Completed</div><div class="stat-value">${counts.completed}</div></div>
+    `;
+    // pagination
+    const pag=document.getElementById('pagination');
+    let h='';
+    for(let i=1;i<=pagination.totalPages;i++) h+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="loadBookings(${i})">${i}</button>`;
+    pag.innerHTML=h;
+  }catch(e){ toast(e.message,'error'); if(e.message.includes('token')) location.href='login.html'; }
+}
+async function cancelBooking(id){
+  if(!confirm('Cancel this booking?')) return;
+  try{ await BookingAPI.update(id,'cancelled'); toast('Booking cancelled','success'); loadBookings(currentPage); }catch(e){ toast(e.message,'error'); }
+}
+function viewBooking(id){ BookingAPI.get(id).then(({booking})=> alert(`Booking #${booking.id}\n${booking.brand_name} ${booking.vehicle_model}\n${booking.showroom_name}\n${booking.booking_date} ${booking.time_slot}\nStatus: ${booking.status}\nNotes: ${booking.notes||'-'}`)).catch(e=> toast(e.message,'error')); }
+
+document.getElementById('statusFilter').addEventListener('change',()=> loadBookings(1));
+document.getElementById('profileForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  try{ await AuthAPI.updateProfile({name: document.getElementById('pName').value, phone: document.getElementById('pPhone').value, address: document.getElementById('pAddress').value}); toast('Profile updated','success'); loadProfile(); }catch(err){ toast(err.message,'error'); }
+});
+document.getElementById('pwdForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  try{ await AuthAPI.changePassword({currentPassword: document.getElementById('curPwd').value, newPassword: document.getElementById('newPwd').value}); toast('Password changed','success'); e.target.reset(); }catch(err){ toast(err.message,'error'); }
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(!requireAuth()) return;
+  loadProfile(); loadBookings(1);
+});
+</script>
+</body>
+</html>

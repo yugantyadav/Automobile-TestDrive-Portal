@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vehicle — ATDP</title>
+<link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+<div id="preloader"><div class="preloader-logo"><div style="display:flex;align-items:center;gap:16px"><div class="preloader-wings"><span class="wing"></span></div><div class="preloader-icon"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></div><div class="preloader-wings"><span class="wing"></span></div></div><div class="preloader-atdp"><span>A</span><span>T</span><span>D</span><span>P</span></div><div class="preloader-subtitle">Navi Mumbai • Test Drive Portal</div></div></div>
+<div id="toast-root"></div>
+<header class="header">
+  <div class="header-left"><button class="hamburger" id="hamburger"><span></span></button><a href="index.html" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></span> ATDP</a><nav class="nav-links"><a href="vehicles.html">Vehicles</a></nav></div>
+  <div class="header-right"><div id="authLinks"><a href="login.html" class="btn btn-secondary">Login</a><a href="register.html" class="btn btn-primary">Register</a></div><div id="userNav" class="hidden"></div></div>
+</header>
+<nav class="mobile-nav" id="mobileNav"><a href="index.html">Home</a><a href="vehicles.html">Vehicles</a><div id="mobileAuth"></div></nav>
+
+<main id="content" class="section" style="padding-top:32px">
+  <div class="container">
+    <a href="vehicles.html" class="caption" style="display:inline-flex;gap:8px;align-items:center"><i class="fa-solid fa-arrow-left"></i> Back to vehicles</a>
+    <div id="vehicleDetail" class="mt-24"></div>
+
+    <!-- Booking Wizard -->
+    <div class="wizard mt-32" id="wizard">
+      <div class="steps">
+        <div class="step active" id="s1">1 • Date</div>
+        <div class="step" id="s2">2 • Time Slot</div>
+        <div class="step" id="s3">3 • Confirm</div>
+      </div>
+      <div class="wizard-panel">
+        <div id="panel1">
+          <h3 class="display-sm">Pick a Date</h3>
+          <p class="body-sm muted" style="margin:8px 0 16px">Future dates only. Showroom auto-assigned by brand.</p>
+          <div class="showroom-box" id="autoShowroomBox"><em>Loading showroom…</em></div>
+          <div class="field" style="margin-top:16px"><label>Booking Date</label><input type="date" id="bookingDate"/></div>
+          <button class="btn btn-primary mt-16" id="toStep2">Continue to Time Slots</button>
+        </div>
+        <div id="panel2" class="hidden">
+          <h3 class="display-sm">Choose Time Slot</h3>
+          <p class="body-sm muted" style="margin:8px 0">09:00–18:00 • One booking per slot</p>
+          <div class="slot-grid" id="slotGrid"></div>
+          <div class="mt-16" style="display:flex;gap:12px"><button class="btn btn-secondary" id="back1">Back</button><button class="btn btn-primary" id="toStep3" disabled>Continue</button></div>
+        </div>
+        <div id="panel3" class="hidden">
+          <h3 class="display-sm">Confirm Booking</h3>
+          <div id="confirmSummary" style="margin:16px 0;border:1px solid var(--color-hairline-soft);padding:16px;background:var(--color-bg-off-white)"></div>
+          <div class="field"><label>Notes (optional)</label><textarea id="notes" rows="3" placeholder="Any specific request? e.g., Need automatic variant"></textarea></div>
+          <div style="display:flex;gap:12px;margin-top:16px"><button class="btn btn-secondary" id="back2">Back</button><button class="btn btn-primary" id="confirmBtn">Confirm Test Drive</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer"><div class="footer-bottom"><span>© 2026 ATDP</span><a href="vehicles.html">Vehicles</a></div></footer>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+let vehicle=null; let showroom=null; let selectedSlot=null;
+const id = new URLSearchParams(location.search).get('id');
+if(!id){ document.getElementById('vehicleDetail').innerHTML='<p>Missing vehicle id</p>'; }
+
+function setStep(n){
+  document.querySelectorAll('.step').forEach((el,i)=> el.classList.toggle('active', i===n-1));
+  document.getElementById('panel1').classList.toggle('hidden', n!==1);
+  document.getElementById('panel2').classList.toggle('hidden', n!==2);
+  document.getElementById('panel3').classList.toggle('hidden', n!==3);
+}
+
+async function loadVehicle(){
+  try{
+    const {vehicle: v}= await VehicleAPI.get(id);
+    vehicle=v; showroom=v.auto_showroom;
+    document.getElementById('vehicleDetail').innerHTML=`
+      <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:32px">
+        <div><img src="${v.image_url}" alt="${v.brand_name} ${v.model}" style="width:100%;height:420px;object-fit:cover;border:1px solid var(--color-hairline-soft)"/></div>
+        <div>
+          <div class="caption-uppercase" style="color:var(--color-brand-primary)">${v.brand_name} • ${v.category}</div>
+          <h1 class="display-md" style="margin:8px 0">${v.brand_name} ${v.model}</h1>
+          <div class="card-price" style="font-size:28px">${formatINR(v.price)} <span>on-road Navi Mumbai</span></div>
+          <div class="divider"></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+            <div class="caption"><strong>Engine</strong><br/><span class="muted">${v.engine}</span></div>
+            <div class="caption"><strong>Power</strong><br/><span class="muted">${v.horsepower} HP</span></div>
+            <div class="caption"><strong>Fuel</strong><br/><span class="muted">${v.fuel_type}</span></div>
+            <div class="caption"><strong>Transmission</strong><br/><span class="muted">${v.transmission}</span></div>
+            <div class="caption"><strong>Mileage</strong><br/><span class="muted">${v.mileage}</span></div>
+            <div class="caption"><strong>Top Speed</strong><br/><span class="muted">${v.top_speed}</span></div>
+          </div>
+          <div class="divider"></div>
+          <p class="body-sm">${v.description||''}</p>
+          ${v.colors?`<div class="caption mt-16"><strong>Colours:</strong> ${Array.isArray(v.colors)?v.colors.join(' • '):v.colors}</div>`:''}
+          <div class="caption mt-16" style="padding:10px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)">Status: <strong style="color:${v.status==='available'?'var(--color-success)':'var(--color-error)'}">${v.status}</strong> ${v.status!=='available' ? ' — Cannot be booked' : ''}</div>
+        </div>
+      </div>
+    `;
+    // showroom box
+    const sb=document.getElementById('autoShowroomBox');
+    if(showroom){
+      sb.innerHTML=`<h4>${showroom.name} — Auto-assigned</h4><p class="body-sm muted">${showroom.address}, ${showroom.city}, ${showroom.state}</p><p class="caption"><i class="fa-solid fa-phone"></i> ${showroom.phone} • ${showroom.email||''} • ${showroom.opening_time.slice(0,5)}–${showroom.closing_time.slice(0,5)}</p><p class="caption" style="margin-top:8px;color:var(--color-brand-primary)">↳ Based on ${v.brand_name} brand — customer does not choose showroom.</p>`;
+    } else {
+      sb.innerHTML=`<p class="caption" style="color:var(--color-error)">No showroom found for this brand. Admin must create one.</p>`;
+    }
+    // date min = tomorrow
+    const dateInput=document.getElementById('bookingDate');
+    const tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+    dateInput.min=tomorrow.toISOString().split('T')[0];
+    const max=new Date(); max.setMonth(max.getMonth()+3); dateInput.max=max.toISOString().split('T')[0];
+    dateInput.value=dateInput.min;
+  }catch(e){ toast(e.message,'error'); }
+}
+
+async function loadSlots(){
+  const date=document.getElementById('bookingDate').value;
+  if(!date) return toast('Pick a date first','error');
+  if(!showroom) return toast('No showroom for this vehicle','error');
+  if(!requireAuth()) return;
+  try{
+    const {availableSlots, bookedSlots, allSlots}= await BookingAPI.slots(showroom.id, date);
+    const grid=document.getElementById('slotGrid');
+    grid.innerHTML = allSlots.map(s=>{
+      const isBooked = bookedSlots.includes(s);
+      return `<div class="slot ${isBooked?'booked':''}" data-slot="${s}">${s} ${isBooked?'(Booked)':''}</div>`;
+    }).join('');
+    grid.querySelectorAll('.slot:not(.booked)').forEach(el=>{
+      el.addEventListener('click',()=>{
+        grid.querySelectorAll('.slot').forEach(x=> x.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedSlot=el.dataset.slot;
+        document.getElementById('toStep3').disabled=false;
+      });
+    });
+    toast(`${availableSlots.length} slots available on ${date}`,'success');
+  }catch(e){ toast(e.message,'error'); }
+}
+
+document.getElementById('toStep2').addEventListener('click', async ()=>{
+  if(!vehicle || vehicle.status!=='available') return toast('Vehicle not available','error');
+  if(!document.getElementById('bookingDate').value) return toast('Select date','error');
+  await loadSlots();
+  setStep(2);
+});
+document.getElementById('back1').addEventListener('click',()=> setStep(1));
+document.getElementById('toStep3').addEventListener('click',()=>{
+  if(!selectedSlot) return toast('Select a time slot','error');
+  const date=document.getElementById('bookingDate').value;
+  document.getElementById('confirmSummary').innerHTML=`
+    <div class="caption-uppercase">Booking Summary</div>
+    <h4 style="margin:8px 0">${vehicle.brand_name} ${vehicle.model}</h4>
+    <p class="body-sm">Showroom: <strong>${showroom.name}</strong> — ${showroom.address}, ${showroom.city}</p>
+    <p class="body-sm">Date: <strong>${date}</strong> • Slot: <strong>${selectedSlot}</strong></p>
+    <p class="body-sm">Price: <strong>${formatINR(vehicle.price)}</strong></p>
+    <p class="caption" style="margin-top:8px;color:var(--color-success)">✓ Showroom auto-assigned by brand • No double-booking allowed</p>
+  `;
+  setStep(3);
+});
+document.getElementById('back2').addEventListener('click',()=> setStep(2));
+document.getElementById('confirmBtn').addEventListener('click', async ()=>{
+  if(!requireAuth()) return;
+  const payload={
+    vehicle_id: vehicle.id,
+    booking_date: document.getElementById('bookingDate').value,
+    time_slot: selectedSlot,
+    notes: document.getElementById('notes').value.trim()||undefined
+  };
+  if(showroom) payload.showroom_id = showroom.id;
+  const btn=document.getElementById('confirmBtn');
+  btn.disabled=true; btn.textContent='Booking…';
+  try{
+    await BookingAPI.create(payload);
+    toast('Test drive booked successfully!','success');
+    setTimeout(()=> location.href='dashboard.html', 900);
+  }catch(e){ toast(e.message,'error'); btn.disabled=false; btn.textContent='Confirm Test Drive'; }
+});
+
+document.addEventListener('DOMContentLoaded', loadVehicle);
+</script>
+</body>
+</html>
