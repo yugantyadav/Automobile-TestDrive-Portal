@@ -13,10 +13,15 @@ function toast(msg, type='info'){
 function initPreloader(){
   const pl=document.getElementById('preloader');
   if(!pl) return;
+  // Only on index.html (main landing), not on other pages
+  const path = location.pathname.split('/').pop();
+  const isIndex = path === '' || path === 'index.html' || path === '/';
+  if(!isIndex){ pl.style.display='none'; return; }
+  // Show only once per session — going to other pages and back won't replay
+  if(sessionStorage.getItem('atdp_preloader_done')){ pl.style.display='none'; return; }
   // visible for 1 sec then fade out 1 sec (total 2 sec)
   setTimeout(()=>{ pl.classList.add('fade-out'); }, 1000);
-  // ensure hidden after 2.2s
-  setTimeout(()=>{ pl.style.display='none'; }, 2200);
+  setTimeout(()=>{ pl.style.display='none'; sessionStorage.setItem('atdp_preloader_done','1'); }, 2200);
 }
 
 function initHeader(){
