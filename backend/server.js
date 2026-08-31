@@ -16,10 +16,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
-app.use(rateLimit({ windowMs: 15*60*1000, max: 200, standardHeaders: true, legacyHeaders: false }));
+// Rate limit only for API, not static assets (favicon/CSS/JS were exhausting the 200 limit)
+const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1000, standardHeaders: true, legacyHeaders: false, message: { message: 'Too many requests, please try again later.' }, skip: (req) => req.originalUrl.startsWith('/api/auth') });
+const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 100, standardHeaders: true, legacyHeaders: false, message: { message: 'Too many auth attempts, please try again later.' } });
+app.use('/api/', apiLimiter);
 
-// API routes
-app.use('/api/auth', require('./routes/auth'));
+// API routes (auth gets stricter limiter)
+app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/showrooms', require('./routes/showrooms'));
 app.use('/api/bookings', require('./routes/bookings'));
