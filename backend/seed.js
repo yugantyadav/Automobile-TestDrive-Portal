@@ -100,7 +100,25 @@ for (const v of vehicles) {
 const adminHash = bcrypt.hashSync('Admin@123', 12);
 const custHash = bcrypt.hashSync('John@123', 12);
 db.prepare('INSERT INTO users (name,email,password,role,phone,address) VALUES (?,?,?,?,?,?)').run('ATDP Admin','admin@autoportal.com',adminHash,'admin','+91 9876543210','Navi Mumbai, Maharashtra');
-db.prepare('INSERT INTO users (name,email,password,role,phone,address) VALUES (?,?,?,?,?,?)').run('John Doe','john@example.com',custHash,'customer','+91 9876501234','Sector 17, Vashi, Navi Mumbai');
+const custRes = db.prepare('INSERT INTO users (name,email,password,role,phone,address) VALUES (?,?,?,?,?,?)').run('John Doe','john@example.com',custHash,'customer','+91 9876501234','Sector 17, Vashi, Navi Mumbai');
+const demoUserId = custRes.lastInsertRowid;
+
+// Demo bookings — so Admin dashboard "All Status" shows data (pending/approved/cancelled/completed)
+const today = new Date();
+function addDays(n){ const d=new Date(today); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+const demoBookings = [
+  {vehicle_id: 1, showroom_id: brandIds['Maruti Suzuki'], booking_date: addDays(1), time_slot:'09:00-10:00', status:'pending', notes:'Need early morning slot, first time test drive', admin_message: null},
+  {vehicle_id: 7, showroom_id: brandIds['Hyundai'], booking_date: addDays(2), time_slot:'11:00-12:00', status:'approved', notes:'Wants to test Creta ADAS feature', admin_message:'Congratulations! Your test drive for Hyundai Creta is approved. Please arrive 15 mins early at Nerul Hyundai with driving licence. Our executive will contact you.'},
+  {vehicle_id: 18, showroom_id: brandIds['Toyota'], booking_date: addDays(3), time_slot:'14:00-15:00', status:'cancelled', notes:'Interested in Fortuner Legender', admin_message:'Sorry, the requested slot is fully booked due to high demand for Fortuner. Please choose another date or contact showroom at +91 22 2757 1234.'},
+  {vehicle_id: 14, showroom_id: brandIds['Mahindra'], booking_date: addDays(4), time_slot:'15:00-16:00', status:'pending', notes:'Scorpio N for family, need 7-seater demo', admin_message: null},
+  {vehicle_id: 25, showroom_id: brandIds['BMW'], booking_date: addDays(5), time_slot:'10:00-11:00', status:'completed', notes:'BMW 330Li test drive, loved it', admin_message:'Thank you for completing your test drive! We hope you enjoyed the BMW 3 Series. Our team will follow up with offers.'},
+];
+// Map showroom_id from brand: find actual showroom id by brand
+for(const b of demoBookings){
+  const showroom = db.prepare('SELECT id FROM showrooms WHERE brand_id=? LIMIT 1').get(b.showroom_id);
+  const sid = showroom ? showroom.id : b.showroom_id;
+  try{ db.prepare('INSERT INTO bookings (user_id,vehicle_id,showroom_id,booking_date,time_slot,status,notes,admin_message) VALUES (?,?,?,?,?,?,?,?)').run(demoUserId,b.vehicle_id,sid,b.booking_date,b.time_slot,b.status,b.notes,b.admin_message); }catch(e){ console.log('booking seed err',e.message); }
+}
 
 console.log('Seed complete — updated from net (ZigWheels/CarDekho/Autocar)');
 console.log('Brands:', brands.length, 'with Wikimedia logos');
