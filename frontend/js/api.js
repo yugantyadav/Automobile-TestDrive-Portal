@@ -17,16 +17,23 @@ const AuthAPI = {
   updateProfile: (payload)=> api('/api/auth/profile',{method:'PUT',body:JSON.stringify(payload)}),
   changePassword: (payload)=> api('/api/auth/change-password',{method:'PUT',body:JSON.stringify(payload)}),
 };
+function cleanParams(p){
+  const o={};
+  for(const [k,v] of Object.entries(p)){
+    if(v!==undefined && v!==null && v!=='') o[k]=v;
+  }
+  return o;
+}
 const VehicleAPI = {
-  list: (params={})=>{ const qs=new URLSearchParams(params).toString(); return api(`/api/vehicles${qs?'?'+qs:''}`)},
+  list: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/vehicles${qs?'?'+qs:''}`)},
   brands: ()=> api('/api/vehicles/brands'),
   get: (id)=> api(`/api/vehicles/${id}`),
 };
 const ShowroomAPI = {
-  list: (params={})=>{ const qs=new URLSearchParams(params).toString(); return api(`/api/showrooms${qs?'?'+qs:''}`)},
+  list: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/showrooms${qs?'?'+qs:''}`)},
 };
 const BookingAPI = {
-  list: (params={})=>{ const qs=new URLSearchParams(params).toString(); return api(`/api/bookings${qs?'?'+qs:''}`)},
+  list: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/bookings${qs?'?'+qs:''}`)},
   slots: (showroom_id, booking_date)=> api(`/api/bookings/available-slots?showroom_id=${showroom_id}&booking_date=${booking_date}`),
   create: (payload)=> api('/api/bookings',{method:'POST',body:JSON.stringify(payload)}),
   update: (id, status, admin_message)=> {
@@ -39,8 +46,8 @@ const BookingAPI = {
 };
 const AdminAPI = {
   dashboard: ()=> api('/api/admin/dashboard'),
-  users: (params={})=>{ const qs=new URLSearchParams(params).toString(); return api(`/api/admin/users${qs?'?'+qs:''}`)},
-  bookings: (params={})=>{ const qs=new URLSearchParams(params).toString(); return api(`/api/admin/bookings${qs?'?'+qs:''}`)},
+  users: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/admin/users${qs?'?'+qs:''}`)},
+  bookings: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/admin/bookings${qs?'?'+qs:''}`)},
 };
 function formatINR(amount){
   return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(amount);
