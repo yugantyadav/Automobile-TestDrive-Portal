@@ -289,6 +289,14 @@ td{padding:14px 16px;border-bottom:1px solid var(--color-hairline-soft)}
 .search-bar input{flex:1;padding:12px 16px;border:1px solid var(--color-hairline);font-size:14px}
 .divider{height:1px;background:var(--color-hairline-soft);margin:24px 0}
 
+/* Three Steps hover — green theme */
+.step-card{padding:24px;border:1px solid var(--color-hairline-soft);background:white;transition:all 0.3s ease}
+.step-icon{width:48px;height:48px;border-radius:50%;border:1px solid var(--color-brand-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--color-brand-primary);transition:all 0.3s ease;font-weight:500}
+.step-card:hover{background:var(--color-brand-primary);border-color:var(--color-brand-primary);color:var(--color-text-inverse)}
+.step-card:hover .step-icon{border-color:var(--color-text-inverse);color:var(--color-text-inverse);background:rgba(255,255,255,0.12)}
+.step-card:hover h4{color:var(--color-text-inverse)}
+.step-card:hover p{color:rgba(255,255,255,0.82)}
+
 /* Responsive */
 @media(max-width:1025px){
   .grid-3{grid-template-columns:repeat(2,1fr)}
