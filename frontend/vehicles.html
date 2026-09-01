@@ -33,7 +33,7 @@
       <div class="filter-group"><label>Brand</label><select id="fBrand"><option value="">All Brands</option></select></div>
       <div class="filter-group"><label>Fuel</label><select id="fFuel"><option value="">All Fuels</option><option>Petrol</option><option>Diesel</option><option>Hybrid</option></select></div>
       <div class="filter-group"><label>Max Price</label><select id="fPrice"><option value="">Any Price</option><option value="1000000">≤ ₹10 Lakh</option><option value="2000000">≤ ₹20 Lakh</option><option value="4000000">≤ ₹40 Lakh</option><option value="7000000">≤ ₹70 Lakh</option></select></div>
-      <div class="filter-group"><label>Status</label><select id="fStatus"><option value="">Available only</option><option value="available">Available</option><option value="unavailable">Unavailable</option></select></div>
+      <div class="filter-group"><label>Status</label><select id="fStatus"><option value="available">Available only</option><option value="">All</option><option value="unavailable">Unavailable</option><option value="maintenance">Maintenance</option></select></div>
       <div class="filter-group" style="flex:0"><button id="fSearchBtn" class="btn btn-primary" style="margin-top:18px">Search</button></div>
       <div class="filter-group" style="flex:0"><button id="fReset" class="btn btn-secondary" style="margin-top:18px">Reset</button></div>
     </div>
@@ -110,7 +110,7 @@ document.getElementById('fSearchBtn').addEventListener('click',()=> fetchAndRend
 document.getElementById('fReset').addEventListener('click',()=>{
   document.getElementById('fSearch').value=''; document.getElementById('fBrand').value='';
   document.getElementById('fFuel').value=''; document.getElementById('fPrice').value='';
-  document.getElementById('fStatus').value='';
+  document.getElementById('fStatus').value='available';
   fetchAndRender(1);
 });
 document.addEventListener('DOMContentLoaded', async ()=>{

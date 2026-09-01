@@ -7,18 +7,18 @@ initDb();
 db.exec(`DELETE FROM bookings; DELETE FROM vehicles; DELETE FROM showrooms; DELETE FROM brands; DELETE FROM users;`);
 try{ db.exec(`DELETE FROM sqlite_sequence;`);}catch{}
 
-// Brands — logos from Wikimedia Commons (transparent PNG, demo use, verified 2026)
+// Brands — local SVG logos (demo, no external dependency)
 const brands = [
-  { name: 'Maruti Suzuki', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Maruti_Suzuki_Logo.svg/400px-Maruti_Suzuki_Logo.svg.png' },
-  { name: 'Hyundai', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Hyundai_logo.svg/400px-Hyundai_logo.svg.png' },
-  { name: 'Tata Motors', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Tata_logo.svg/400px-Tata_logo.svg.png' },
-  { name: 'Mahindra', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mahindra_Rise_logo.svg/400px-Mahindra_Rise_logo.svg.png' },
-  { name: 'Honda', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Honda_logo.png/400px-Honda_logo.png' },
-  { name: 'Toyota', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Toyota_carlogo.svg/400px-Toyota_carlogo.svg.png' },
-  { name: 'Kia', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Kia_logo.svg/400px-Kia_logo.svg.png' },
-  { name: 'MG Motor', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/MG_Motor_logo.svg/400px-MG_Motor_logo.svg.png' },
-  { name: 'BMW', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/400px-BMW.svg.png' },
-  { name: 'Mercedes-Benz', category: 'car', logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Mercedes-Logo.svg/300px-Mercedes-Logo.svg.png' },
+  { name: 'Maruti Suzuki', category: 'car', logo_url: '/img/logos/maruti.svg' },
+  { name: 'Hyundai', category: 'car', logo_url: '/img/logos/hyundai.svg' },
+  { name: 'Tata Motors', category: 'car', logo_url: '/img/logos/tata.svg' },
+  { name: 'Mahindra', category: 'car', logo_url: '/img/logos/mahindra.svg' },
+  { name: 'Honda', category: 'car', logo_url: '/img/logos/honda.svg' },
+  { name: 'Toyota', category: 'car', logo_url: '/img/logos/toyota.svg' },
+  { name: 'Kia', category: 'car', logo_url: '/img/logos/kia.svg' },
+  { name: 'MG Motor', category: 'car', logo_url: '/img/logos/mg.svg' },
+  { name: 'BMW', category: 'car', logo_url: '/img/logos/bmw.svg' },
+  { name: 'Mercedes-Benz', category: 'car', logo_url: '/img/logos/mercedes.svg' },
 ];
 
 const brandIds = {};
