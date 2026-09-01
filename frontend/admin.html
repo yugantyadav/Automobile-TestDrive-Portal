@@ -101,6 +101,26 @@
   </div>
 </main>
 
+<!-- Booking Action Modal — Aston Martin theme -->
+<div id="bookingModal" class="hidden" style="position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.48);padding:24px">
+  <div style="background:var(--color-bg-white);width:100%;max-width:560px;border:1px solid var(--color-hairline-soft);padding:32px;position:relative;box-shadow:0 16px 48px rgba(0,0,0,0.20)">
+    <button id="modalClose" aria-label="Close" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;line-height:1;color:var(--color-text-muted);cursor:pointer">×</button>
+    <div class="caption-uppercase" style="color:var(--color-brand-primary)" id="modalEyebrow">Booking</div>
+    <h3 class="display-sm" id="modalTitle" style="margin:8px 0 8px">Manage Booking</h3>
+    <p class="body-sm muted" id="modalDesc">Add a message for the customer — this will appear in their dashboard.</p>
+    <div id="modalBookingMeta" class="caption" style="margin:12px 0;padding:12px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)"></div>
+    <div class="field">
+      <label id="modalLabel">Admin Message <span style="color:var(--color-text-muted);font-weight:400">(visible to customer)</span></label>
+      <textarea id="modalMessage" rows="4" placeholder="Congratulate or tell why not..." style="width:100%;padding:12px;border:1px solid var(--color-hairline);background:white;font-size:14px;line-height:1.5;resize:vertical"></textarea>
+      <small id="modalHint" class="caption" style="color:var(--color-text-muted)">For approval: e.g., “Congratulations! Please arrive 15 mins early with licence.” For rejection: please give a clear reason.</small>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:24px">
+      <button id="modalCancel" class="btn btn-secondary" style="flex:1">Cancel</button>
+      <button id="modalConfirm" class="btn btn-primary" style="flex:1">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 <script>
@@ -135,6 +155,44 @@ async function loadDashboard(){
     const sSel=document.getElementById('sBrand'); sSel.innerHTML='<option value="">No brand (multi)</option>'+brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   }catch(e){ toast(e.message,'error'); }
 }
+let pendingModalAction = null; // {id, status}
+function openBookingModal(id, status, bookingMeta){
+  pendingModalAction = {id, status};
+  const isApprove = status === 'approved';
+  const isReject = status === 'cancelled' && bookingMeta?.isReject;
+  document.getElementById('modalEyebrow').textContent = isApprove ? 'Approve Booking' : isReject ? 'Reject Booking' : 'Update Booking';
+  document.getElementById('modalTitle').textContent = isApprove ? 'Approve Test Drive' : isReject ? 'Reject Request' : `Change to ${status}`;
+  document.getElementById('modalDesc').textContent = isApprove ? 'Add a congratulatory message — this will appear in the customer dashboard.' : isReject ? 'Please provide a clear reason for rejection — visible to the customer.' : 'Add an optional message for the customer.';
+  document.getElementById('modalLabel').innerHTML = isReject ? 'Rejection Reason <span style="color:var(--color-error)">*</span>' : 'Admin Message';
+  document.getElementById('modalBookingMeta').innerHTML = bookingMeta ? `<strong>#${bookingMeta.id} • ${bookingMeta.user}</strong> — ${bookingMeta.vehicle}<br/><span class="caption">${bookingMeta.showroom} • ${bookingMeta.slot}</span>` : '';
+  const ta = document.getElementById('modalMessage');
+  ta.value = isApprove ? (bookingMeta?.existingMsg || 'Congratulations! Your test drive request is approved. Please arrive 15 mins early at the showroom with your driving licence. Our executive will contact you.') : (bookingMeta?.existingMsg || '');
+  ta.placeholder = isApprove ? 'Congratulations! Your request is approved...' : isReject ? 'Tell why it was not approved (e.g., slot fully booked, documents required)...' : 'Optional message for customer...';
+  document.getElementById('modalConfirm').textContent = isApprove ? 'Approve & Send' : isReject ? 'Reject & Send' : 'Confirm';
+  document.getElementById('modalConfirm').style.background = isReject ? 'var(--color-error)' : 'var(--color-brand-primary)';
+  document.getElementById('modalConfirm').style.borderColor = isReject ? 'var(--color-error)' : 'var(--color-brand-primary)';
+  document.getElementById('bookingModal').classList.remove('hidden');
+}
+function closeBookingModal(){
+  document.getElementById('bookingModal').classList.add('hidden');
+  pendingModalAction = null;
+}
+document.getElementById('modalClose')?.addEventListener('click', closeBookingModal);
+document.getElementById('modalCancel')?.addEventListener('click', closeBookingModal);
+document.getElementById('bookingModal')?.addEventListener('click', (e)=>{ if(e.target.id==='bookingModal') closeBookingModal(); });
+document.getElementById('modalConfirm')?.addEventListener('click', async ()=>{
+  if(!pendingModalAction) return;
+  const msg = document.getElementById('modalMessage').value.trim();
+  const isReject = pendingModalAction.status === 'cancelled' && document.getElementById('modalEyebrow').textContent.includes('Reject');
+  if(isReject && !msg){ toast('Please enter a reason for rejection','error'); document.getElementById('modalMessage').focus(); return; }
+  try{
+    const finalMsg = msg || (pendingModalAction.status==='approved' ? document.getElementById('modalMessage').value.trim() : undefined);
+    await BookingAPI.update(pendingModalAction.id, pendingModalAction.status, finalMsg || undefined);
+    toast(`Booking #${pendingModalAction.id} → ${pendingModalAction.status}`,'success');
+    closeBookingModal();
+    loadAdminBookings(1); loadDashboard();
+  }catch(e){ toast(e.message,'error'); }
+});
 async function loadAdminBookings(page=1){
   const status=document.getElementById('bStatus').value;
   try{
@@ -143,52 +201,30 @@ async function loadAdminBookings(page=1){
       <tr>
         <td>${b.id}</td>
         <td>${b.user_name}<br/><span class="caption">${b.user_email}</span><br/><span class="caption muted">${b.notes ? 'User: '+b.notes.slice(0,60) : ''}</span></td>
-        <td>${b.brand_name} ${b.vehicle_model}<br/><span class="caption">${formatINR(b.vehicle_price)}</span></td>
+        <td>${b.brand_name} ${b.vehicle_model}<br/><span class="caption">${b.vehicle_price ? formatINR(b.vehicle_price) : ''}</span></td>
         <td>${b.showroom_name}<br/><span class="caption">${b.booking_date} ${b.time_slot}</span></td>
         <td><span class="badge badge-${b.status}">${b.status}</span>${b.admin_message ? `<div style="margin-top:6px;padding:6px;background:#F5F5F5;border-left:2px solid var(--color-brand-primary);font-size:11px"><strong>Msg:</strong> ${b.admin_message}</div>` : ''}</td>
         <td style="min-width:220px">
           ${b.status==='pending' ? `
-            <textarea id="msg-${b.id}" placeholder="Congratulate or tell why not..." style="width:100%;height:48px;padding:6px;border:1px solid var(--color-hairline);font-size:12px;margin-bottom:6px">${b.admin_message||''}</textarea>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-primary btn-small" style="flex:1;background:var(--color-success);border-color:var(--color-success)" onclick="approveBooking(${b.id})">Approve ✓</button>
-              <button class="btn btn-secondary btn-small" style="flex:1;color:var(--color-error);border-color:var(--color-error)" onclick="rejectBooking(${b.id})">Reject ✕</button>
+              <button class="btn btn-primary btn-small" style="flex:1;background:var(--color-success);border-color:var(--color-success)" onclick="openBookingModal(${b.id}, 'approved', {id:${b.id}, user:'${b.user_name.replace(/'/g,"\\'")}', vehicle:'${(b.brand_name+" "+b.vehicle_model).replace(/'/g,"\\'")}', showroom:'${b.showroom_name.replace(/'/g,"\\'")}', slot:'${b.booking_date} ${b.time_slot}', existingMsg: \`${(b.admin_message||'').replace(/`/g,'\\`')}\`})">Approve ✓</button>
+              <button class="btn btn-secondary btn-small" style="flex:1;color:var(--color-error);border-color:var(--color-error)" onclick="openBookingModal(${b.id}, 'cancelled', {id:${b.id}, user:'${b.user_name.replace(/'/g,"\\'")}', vehicle:'${(b.brand_name+" "+b.vehicle_model).replace(/'/g,"\\'")}', showroom:'${b.showroom_name.replace(/'/g,"\\'")}', slot:'${b.booking_date} ${b.time_slot}', existingMsg: \`${(b.admin_message||'').replace(/`/g,'\\`')}\`, isReject:true})">Reject ✕</button>
             </div>
           ` : b.status==='approved' ? `
-            <textarea id="msg-${b.id}" placeholder="Completion note..." style="width:100%;height:36px;padding:6px;border:1px solid var(--color-hairline);font-size:12px;margin-bottom:6px">${b.admin_message||''}</textarea>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-primary btn-small" onclick="updateBookingWithMsg(${b.id},'completed')">Complete</button>
-              <button class="btn btn-secondary btn-small" onclick="updateBookingWithMsg(${b.id},'cancelled')">Cancel</button>
+              <button class="btn btn-primary btn-small" style="flex:1" onclick="openBookingModal(${b.id}, 'completed', {id:${b.id}, user:'${b.user_name.replace(/'/g,"\\'")}', vehicle:'${(b.brand_name+" "+b.vehicle_model).replace(/'/g,"\\'")}', showroom:'${b.showroom_name.replace(/'/g,"\\'")}', slot:'${b.booking_date} ${b.time_slot}', existingMsg: \`${(b.admin_message||'').replace(/`/g,'\\`')}\`})">Complete</button>
+              <button class="btn btn-secondary btn-small" style="flex:1" onclick="openBookingModal(${b.id}, 'cancelled', {id:${b.id}, user:'${b.user_name.replace(/'/g,"\\'")}', vehicle:'${(b.brand_name+" "+b.vehicle_model).replace(/'/g,"\\'")}', showroom:'${b.showroom_name.replace(/'/g,"\\'")}', slot:'${b.booking_date} ${b.time_slot}', existingMsg: \`${(b.admin_message||'').replace(/`/g,'\\`')}\`, isReject:true})">Cancel</button>
             </div>
           ` : `
-            <textarea id="msg-${b.id}" placeholder="Add message..." style="width:100%;height:36px;padding:6px;border:1px solid var(--color-hairline);font-size:12px;margin-bottom:6px">${b.admin_message||''}</textarea>
-            <select onchange="updateBookingWithMsg(${b.id},this.value)" style="padding:4px;width:100%;margin-bottom:6px"><option value="">Change status…</option><option value="approved">Approve</option><option value="completed">Complete</option><option value="cancelled">Cancel</option></select>
+            <button class="btn btn-secondary btn-small" style="width:100%" onclick="openBookingModal(${b.id}, 'approved', {id:${b.id}, user:'${b.user_name.replace(/'/g,"\\'")}', vehicle:'${(b.brand_name+" "+b.vehicle_model).replace(/'/g,"\\'")}', showroom:'${b.showroom_name.replace(/'/g,"\\'")}', slot:'${b.booking_date} ${b.time_slot}', existingMsg: \`${(b.admin_message||'').replace(/`/g,'\\`')}\`})">Change Status</button>
           `}
-          <button class="btn btn-secondary btn-small" style="width:100%;margin-top:4px" onclick="deleteBooking(${b.id})">Delete</button>
+          <button class="btn btn-secondary btn-small" style="width:100%;margin-top:6px" onclick="deleteBooking(${b.id})">Delete</button>
         </td>
       </tr>
     `).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:20px">No bookings — awaiting requests</td></tr>`;
     let h=''; for(let i=1;i<=pagination.totalPages;i++) h+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="loadAdminBookings(${i})">${i}</button>`;
     document.getElementById('bPag').innerHTML=h;
   }catch(e){ toast(e.message,'error'); }
-}
-async function approveBooking(id){
-  const msg = document.getElementById(`msg-${id}`)?.value.trim() || 'Congratulations! Your test drive request is approved. Please arrive 15 mins early at the showroom with your driving licence.';
-  try{ await BookingAPI.update(id,'approved', msg); toast(`Booking #${id} approved`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
-}
-async function rejectBooking(id){
-  const msg = document.getElementById(`msg-${id}`)?.value.trim();
-  if(!msg){ toast('Please enter a reason for rejection in the text box','error'); document.getElementById(`msg-${id}`)?.focus(); return; }
-  try{ await BookingAPI.update(id,'cancelled', msg); toast(`Booking #${id} rejected`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
-}
-async function updateBookingWithMsg(id,status){
-  if(!status) return;
-  const msg = document.getElementById(`msg-${id}`)?.value.trim() || undefined;
-  try{ await BookingAPI.update(id,status, msg); toast(`Booking #${id} → ${status}`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
-}
-async function updateBookingStatus(id,status){
-  if(!status) return;
-  const msg = document.getElementById(`msg-${id}`)?.value.trim() || undefined;
-  try{ await BookingAPI.update(id,status, msg); toast(`Booking #${id} → ${status}`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
 }
 async function deleteBooking(id){
   if(!confirm('Delete booking #'+id+'?')) return;

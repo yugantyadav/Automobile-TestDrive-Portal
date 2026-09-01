@@ -51,7 +51,7 @@ router.get('/bookings', (req, res) => {
   const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
   const count = db.prepare(`SELECT COUNT(*) as c FROM bookings b ${whereSql}`).get(...params).c;
   const bookings = db.prepare(`
-    SELECT b.*, v.model as vehicle_model, v.image_url as vehicle_image, br.name as brand_name, s.name as showroom_name, u.name as user_name, u.email as user_email
+    SELECT b.*, v.model as vehicle_model, v.image_url as vehicle_image, v.price as vehicle_price, br.name as brand_name, s.name as showroom_name, u.name as user_name, u.email as user_email
     FROM bookings b
     JOIN vehicles v ON b.vehicle_id=v.id
     JOIN brands br ON v.brand_id=br.id
