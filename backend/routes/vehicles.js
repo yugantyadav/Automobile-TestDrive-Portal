@@ -33,7 +33,7 @@ router.post('/brands', authenticate, authorizeAdmin,
 
 // GET /api/vehicles
 router.get('/', (req, res) => {
-  let { category, brand_id, min_price, max_price, status, search, page, limit } = req.query;
+  let { category, brand_id, min_price, max_price, status, search, fuel_type, page, limit } = req.query;
   const { page: p, limit: l, offset } = paginate(page, limit);
   let where = []; let params = [];
   if (category) { where.push('v.category=?'); params.push(category); }
@@ -41,6 +41,7 @@ router.get('/', (req, res) => {
   if (min_price) { where.push('v.price>=?'); params.push(Number(min_price)); }
   if (max_price) { where.push('v.price<=?'); params.push(Number(max_price)); }
   if (status) { where.push('v.status=?'); params.push(status); }
+  if (fuel_type) { where.push('v.fuel_type=?'); params.push(fuel_type); }
   if (search) { where.push('(v.model LIKE ? OR b.name LIKE ?)'); params.push(`%${search}%`,`%${search}%`); }
   const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
   const count = db.prepare(`SELECT COUNT(*) as c FROM vehicles v JOIN brands b ON v.brand_id=b.id ${whereSql}`).get(...params).c;
