@@ -14,17 +14,26 @@
   <div class="form-card">
     <div class="caption-uppercase" style="color:var(--color-brand-primary)">Welcome Back</div>
     <h1>Login to ATDP</h1>
-    <p class="sub">Access your test drive bookings and showroom assignments.</p>
+    <p class="sub">You must login before booking. Choose role below. Admin requires security password <strong>1234</strong>.</p>
+    
+    <!-- Role tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button type="button" id="tabUser" class="btn btn-primary" style="flex:1">User Login</button>
+      <button type="button" id="tabAdmin" class="btn btn-secondary" style="flex:1">Admin Login</button>
+    </div>
+    <div id="roleHint" class="caption" style="margin-bottom:12px;color:var(--color-text-muted)">Logging in as <strong>User</strong> — use john@example.com</div>
+
     <form id="loginForm">
       <div class="field"><label>Email</label><input type="email" id="email" required placeholder="john@example.com"/></div>
       <div class="field"><label>Password</label><input type="password" id="password" required placeholder="••••••••"/></div>
-      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Login</button>
+      <div class="field hidden" id="adminSecField"><label>Admin Security Password <span style="color:var(--color-error)">*</span></label><input type="password" id="adminSec" placeholder="Enter 1234"/><small>Required for admin access — enter 1234</small></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px" id="loginBtn">Login as User</button>
     </form>
     <div class="divider"></div>
     <div class="caption" style="background:var(--color-bg-off-white);padding:12px;border:1px solid var(--color-hairline-soft)">
       <strong>Demo Credentials:</strong><br/>
       Customer: <code>john@example.com / John@123</code><br/>
-      Admin: <code>admin@autoportal.com / Admin@123</code>
+      Admin: <code>admin@autoportal.com / Admin@123</code> + security <code>1234</code>
     </div>
     <p class="caption" style="margin-top:16px;text-align:center">No account? <a href="register.html" style="color:var(--color-brand-primary);text-decoration:underline">Register</a></p>
   </div>
@@ -33,15 +42,60 @@
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 <script>
+let loginRole = 'user';
+const tabUser = document.getElementById('tabUser');
+const tabAdmin = document.getElementById('tabAdmin');
+const adminSecField = document.getElementById('adminSecField');
+const roleHint = document.getElementById('roleHint');
+const loginBtn = document.getElementById('loginBtn');
+const emailEl = document.getElementById('email');
+
+function setRole(role){
+  loginRole = role;
+  if(role==='admin'){
+    tabAdmin.className='btn btn-primary'; tabAdmin.style.flex='1';
+    tabUser.className='btn btn-secondary';
+    adminSecField.classList.remove('hidden');
+    roleHint.innerHTML='Logging in as <strong>Admin</strong> — requires security 1234';
+    loginBtn.textContent='Login as Admin';
+    emailEl.placeholder='admin@autoportal.com';
+    emailEl.value='admin@autoportal.com';
+  } else {
+    tabUser.className='btn btn-primary';
+    tabAdmin.className='btn btn-secondary';
+    adminSecField.classList.add('hidden');
+    roleHint.innerHTML='Logging in as <strong>User</strong> — use john@example.com';
+    loginBtn.textContent='Login as User';
+    emailEl.placeholder='john@example.com';
+  }
+}
+tabUser.addEventListener('click',()=> setRole('user'));
+tabAdmin.addEventListener('click',()=> setRole('admin'));
+// Auto-select from URL ?role=admin
+const params = new URLSearchParams(location.search);
+if(params.get('role')==='admin') setRole('admin');
+if(params.get('redirect')) roleHint.innerHTML += ` — will redirect to ${params.get('redirect')}`;
+
 document.getElementById('loginForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const payload={ email: document.getElementById('email').value.trim(), password: document.getElementById('password').value };
+  if(loginRole==='admin'){
+    const sec = document.getElementById('adminSec').value.trim();
+    if(sec !== '1234'){ toast('Invalid admin security password. Enter 1234','error'); return; }
+  }
+  const payload={ email: emailEl.value.trim(), password: document.getElementById('password').value };
   try{
     const {user, token}= await AuthAPI.login(payload);
+    // Verify role matches selected tab
+    if(loginRole==='admin' && user.role!=='admin'){ toast('This account is not an admin. Use User Login.','error'); return; }
+    if(loginRole==='user' && user.role==='admin'){ toast('Admin accounts must use Admin Login tab.','error'); return; }
     localStorage.setItem('atdp_token', token);
     localStorage.setItem('atdp_user', JSON.stringify(user));
     toast('Login successful','success');
-    setTimeout(()=> location.href = user.role==='admin' ? 'admin.html' : 'dashboard.html', 700);
+    const redirect = params.get('redirect');
+    setTimeout(()=> {
+      if(redirect) location.href = redirect;
+      else location.href = user.role==='admin' ? 'admin.html' : 'dashboard.html';
+    }, 700);
   }catch(err){ toast(err.message,'error'); }
 });
 </script>

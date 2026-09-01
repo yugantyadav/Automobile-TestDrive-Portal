@@ -133,23 +133,54 @@ async function loadAdminBookings(page=1){
     const {bookings, pagination}=await AdminAPI.bookings({status: status||undefined, page, limit:20});
     document.getElementById('adminBookings').innerHTML=bookings.map(b=> `
       <tr>
-        <td>${b.id}</td><td>${b.user_name}<br/><span class="caption">${b.user_email}</span></td>
+        <td>${b.id}</td>
+        <td>${b.user_name}<br/><span class="caption">${b.user_email}</span><br/><span class="caption muted">${b.notes ? 'User: '+b.notes.slice(0,60) : ''}</span></td>
         <td>${b.brand_name} ${b.vehicle_model}<br/><span class="caption">${formatINR(b.vehicle_price)}</span></td>
-        <td>${b.showroom_name}</td><td>${b.booking_date}<br/>${b.time_slot}</td>
-        <td><span class="badge badge-${b.status}">${b.status}</span></td>
-        <td>
-          <select onchange="updateBookingStatus(${b.id},this.value)" style="padding:4px"><option value="">Change…</option><option value="approved">approve</option><option value="completed">complete</option><option value="cancelled">cancel</option></select>
-          <button class="btn btn-secondary btn-small" style="margin-top:4px" onclick="deleteBooking(${b.id})">Delete</button>
+        <td>${b.showroom_name}<br/><span class="caption">${b.booking_date} ${b.time_slot}</span></td>
+        <td><span class="badge badge-${b.status}">${b.status}</span>${b.admin_message ? `<div style="margin-top:6px;padding:6px;background:#F5F5F5;border-left:2px solid var(--color-brand-primary);font-size:11px"><strong>Msg:</strong> ${b.admin_message}</div>` : ''}</td>
+        <td style="min-width:220px">
+          ${b.status==='pending' ? `
+            <textarea id="msg-${b.id}" placeholder="Congratulate or tell why not..." style="width:100%;height:48px;padding:6px;border:1px solid var(--color-hairline);font-size:12px;margin-bottom:6px">${b.admin_message||''}</textarea>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary btn-small" style="flex:1;background:var(--color-success);border-color:var(--color-success)" onclick="approveBooking(${b.id})">Approve ✓</button>
+              <button class="btn btn-secondary btn-small" style="flex:1;color:var(--color-error);border-color:var(--color-error)" onclick="rejectBooking(${b.id})">Reject ✕</button>
+            </div>
+          ` : b.status==='approved' ? `
+            <textarea id="msg-${b.id}" placeholder="Completion note..." style="width:100%;height:36px;padding:6px;border:1px solid var(--color-hairline);font-size:12px;margin-bottom:6px">${b.admin_message||''}</textarea>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary btn-small" onclick="updateBookingWithMsg(${b.id},'completed')">Complete</button>
+              <button class="btn btn-secondary btn-small" onclick="updateBookingWithMsg(${b.id},'cancelled')">Cancel</button>
+            </div>
+          ` : `
+            <textarea id="msg-${b.id}" placeholder="Add message..." style="width:100%;height:36px;padding:6px;border:1px solid var(--color-hairline);font-size:12px;margin-bottom:6px">${b.admin_message||''}</textarea>
+            <select onchange="updateBookingWithMsg(${b.id},this.value)" style="padding:4px;width:100%;margin-bottom:6px"><option value="">Change status…</option><option value="approved">Approve</option><option value="completed">Complete</option><option value="cancelled">Cancel</option></select>
+          `}
+          <button class="btn btn-secondary btn-small" style="width:100%;margin-top:4px" onclick="deleteBooking(${b.id})">Delete</button>
         </td>
       </tr>
-    `).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:20px">No bookings</td></tr>`;
+    `).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:20px">No bookings — awaiting requests</td></tr>`;
     let h=''; for(let i=1;i<=pagination.totalPages;i++) h+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="loadAdminBookings(${i})">${i}</button>`;
     document.getElementById('bPag').innerHTML=h;
   }catch(e){ toast(e.message,'error'); }
 }
+async function approveBooking(id){
+  const msg = document.getElementById(`msg-${id}`)?.value.trim() || 'Congratulations! Your test drive request is approved. Please arrive 15 mins early at the showroom with your driving licence.';
+  try{ await BookingAPI.update(id,'approved', msg); toast(`Booking #${id} approved`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+}
+async function rejectBooking(id){
+  const msg = document.getElementById(`msg-${id}`)?.value.trim();
+  if(!msg){ toast('Please enter a reason for rejection in the text box','error'); document.getElementById(`msg-${id}`)?.focus(); return; }
+  try{ await BookingAPI.update(id,'cancelled', msg); toast(`Booking #${id} rejected`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+}
+async function updateBookingWithMsg(id,status){
+  if(!status) return;
+  const msg = document.getElementById(`msg-${id}`)?.value.trim() || undefined;
+  try{ await BookingAPI.update(id,status, msg); toast(`Booking #${id} → ${status}`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+}
 async function updateBookingStatus(id,status){
   if(!status) return;
-  try{ await BookingAPI.update(id,status); toast(`Booking #${id} → ${status}`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
+  const msg = document.getElementById(`msg-${id}`)?.value.trim() || undefined;
+  try{ await BookingAPI.update(id,status, msg); toast(`Booking #${id} → ${status}`,'success'); loadAdminBookings(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
 }
 async function deleteBooking(id){
   if(!confirm('Delete booking #'+id+'?')) return;

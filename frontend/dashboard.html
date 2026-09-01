@@ -27,7 +27,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Vehicle</th><th>Showroom</th><th>Date • Slot</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Vehicle</th><th>Showroom</th><th>Date • Slot</th><th>Status & Admin Response</th><th>Actions</th></tr></thead>
             <tbody id="bookingsBody"><tr><td colspan="5" class="muted" style="text-align:center;padding:24px">Loading…</td></tr></tbody>
           </table>
         </div>
@@ -82,7 +82,9 @@ async function loadBookings(page=1){
           <td><strong>${b.brand_name} ${b.vehicle_model}</strong><br/><span class="caption">${formatINR(b.vehicle_price)}</span></td>
           <td class="body-sm">${b.showroom_name}<br/><span class="caption">${b.showroom_city}</span></td>
           <td>${b.booking_date}<br/><span class="caption">${b.time_slot}</span></td>
-          <td><span class="badge badge-${b.status}">${b.status}</span></td>
+          <td><span class="badge badge-${b.status}">${b.status}</span>
+            ${b.admin_message ? `<div style="margin-top:8px;padding:8px;background:${b.status==='approved' ? '#E8F5E9' : b.status==='cancelled' ? '#FFEBEE' : '#FFF3E0'};border-left:3px solid ${b.status==='approved' ? 'var(--color-success)' : 'var(--color-error)'};font-size:12px;line-height:1.4"><strong>Admin:</strong> ${b.admin_message}</div>` : (b.status==='pending' ? `<div class="caption" style="margin-top:6px">Awaiting admin approval</div>` : '')}
+          </td>
           <td>
             ${b.status==='pending'||b.status==='approved' ? `<button class="btn btn-secondary btn-small" onclick="cancelBooking(${b.id})">Cancel</button>` : ''}
             <button class="btn btn-small" style="border:1px solid #E5E5E5;margin-top:4px" onclick="viewBooking(${b.id})">View</button>
@@ -111,7 +113,7 @@ async function cancelBooking(id){
   if(!confirm('Cancel this booking?')) return;
   try{ await BookingAPI.update(id,'cancelled'); toast('Booking cancelled','success'); loadBookings(currentPage); }catch(e){ toast(e.message,'error'); }
 }
-function viewBooking(id){ BookingAPI.get(id).then(({booking})=> alert(`Booking #${booking.id}\n${booking.brand_name} ${booking.vehicle_model}\n${booking.showroom_name}\n${booking.booking_date} ${booking.time_slot}\nStatus: ${booking.status}\nNotes: ${booking.notes||'-'}`)).catch(e=> toast(e.message,'error')); }
+function viewBooking(id){ BookingAPI.get(id).then(({booking})=> alert(`Booking #${booking.id}\n${booking.brand_name} ${booking.vehicle_model}\n${booking.showroom_name}\n${booking.booking_date} ${booking.time_slot}\nStatus: ${booking.status}\nYour Notes: ${booking.notes||'-'}\nAdmin Response: ${booking.admin_message||'Pending approval'}`)).catch(e=> toast(e.message,'error')); }
 
 document.getElementById('statusFilter').addEventListener('change',()=> loadBookings(1));
 document.getElementById('profileForm').addEventListener('submit', async (e)=>{

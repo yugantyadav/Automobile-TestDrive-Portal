@@ -119,42 +119,43 @@ router.post('/',
   }
 );
 
-// PUT update status
+// PUT update status (+ admin_message for approve/reject feedback)
 router.put('/:id',
   body('status').isIn(['pending','approved','completed','cancelled']),
+  body('admin_message').optional().isString().trim().isLength({max:500}),
   (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
     const booking = db.prepare('SELECT * FROM bookings WHERE id=?').get(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-    // customer can only cancel own, admin can set any
     if (req.user.role !== 'admin' && booking.user_id !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-    const { status } = req.body;
+    const { status, admin_message } = req.body;
     if (req.user.role !== 'admin') {
-      // customers only allowed to cancel
       if (status !== 'cancelled') return res.status(403).json({ message: 'Customers can only cancel bookings' });
       if (booking.status === 'completed') return res.status(400).json({ message: 'Cannot cancel completed booking' });
+      if (admin_message) return res.status(403).json({ message: 'Only admin can set admin_message' });
     }
-    // status flow validation
     const validTransitions = {
       pending: ['approved','cancelled'],
       approved: ['completed','cancelled'],
       completed: [],
       cancelled: []
     };
-    // admin also follows but allow pending->cancelled etc. We'll enforce unless admin wants force? Keep strict.
     if (booking.status !== status && !validTransitions[booking.status].includes(status)) {
-      // allow admin to override? For now return error
-      // but allow cancelled from any pending/approved
       if (!(booking.status === 'pending' && status === 'cancelled') && !(booking.status === 'approved' && status === 'cancelled') ) {
-        // Check if same status
         if (booking.status !== status) {
-          // For simplicity, allow if admin, otherwise error
           if (req.user.role !== 'admin') {
             return res.status(400).json({ message: `Invalid status transition ${booking.status} -> ${status}` });
           }
         }
       }
     }
-    db.prepare('UPDATE bookings SET status=? WHERE id=?').run(status, req.params.id);
+    // Admin can attach a congratulatory or rejection reason in admin_message
+    if (admin_message !== undefined && req.user.role === 'admin') {
+      db.prepare('UPDATE bookings SET status=?, admin_message=? WHERE id=?').run(status, admin_message, req.params.id);
+    } else {
+      db.prepare('UPDATE bookings SET status=? WHERE id=?').run(status, req.params.id);
+    }
     const updated = db.prepare('SELECT * FROM bookings WHERE id=?').get(req.params.id);
     res.json({ message: 'Booking updated', booking: updated });
   }

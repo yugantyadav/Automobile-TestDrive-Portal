@@ -29,7 +29,11 @@ const BookingAPI = {
   list: (params={})=>{ const qs=new URLSearchParams(params).toString(); return api(`/api/bookings${qs?'?'+qs:''}`)},
   slots: (showroom_id, booking_date)=> api(`/api/bookings/available-slots?showroom_id=${showroom_id}&booking_date=${booking_date}`),
   create: (payload)=> api('/api/bookings',{method:'POST',body:JSON.stringify(payload)}),
-  update: (id, status)=> api(`/api/bookings/${id}`,{method:'PUT',body:JSON.stringify({status})}),
+  update: (id, status, admin_message)=> {
+    const body={status};
+    if(admin_message!==undefined) body.admin_message=admin_message;
+    return api(`/api/bookings/${id}`,{method:'PUT',body:JSON.stringify(body)});
+  },
   remove: (id)=> api(`/api/bookings/${id}`,{method:'DELETE'}),
   get: (id)=> api(`/api/bookings/${id}`),
 };

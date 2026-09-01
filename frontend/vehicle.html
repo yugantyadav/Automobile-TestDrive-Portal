@@ -19,6 +19,11 @@
     <a href="vehicles.html" class="caption" style="display:inline-flex;gap:8px;align-items:center"><i class="fa-solid fa-arrow-left"></i> Back to vehicles</a>
     <div id="vehicleDetail" class="mt-24"></div>
 
+    <!-- Login gate banner -->
+    <div id="loginGate" class="hidden" style="background:#FFF3E0;border:1px solid #FFB74D;padding:16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div><strong>Login required to book</strong><br/><span class="caption">You must login as <strong>User</strong> or <strong>Admin (security 1234)</strong> before booking.</span></div>
+      <div style="display:flex;gap:8px"><a href="login.html" class="btn btn-primary btn-small">Login as User</a><a href="login.html?role=admin" class="btn btn-secondary btn-small">Login as Admin (1234)</a></div>
+    </div>
     <!-- Booking Wizard -->
     <div class="wizard mt-32" id="wizard">
       <div class="steps">
@@ -110,11 +115,19 @@ async function loadVehicle(){
   }catch(e){ toast(e.message,'error'); }
 }
 
+function enforceLogin(){
+  if(!localStorage.getItem('atdp_token')){
+    toast('Please login first — choose User or Admin (security 1234)','error');
+    setTimeout(()=> location.href=`login.html?redirect=${encodeURIComponent(location.pathname+location.search)}`,800);
+    return false;
+  }
+  return true;
+}
 async function loadSlots(){
   const date=document.getElementById('bookingDate').value;
   if(!date) return toast('Pick a date first','error');
   if(!showroom) return toast('No showroom for this vehicle','error');
-  if(!requireAuth()) return;
+  if(!enforceLogin()) return;
   try{
     const {availableSlots, bookedSlots, allSlots}= await BookingAPI.slots(showroom.id, date);
     const grid=document.getElementById('slotGrid');
@@ -135,6 +148,7 @@ async function loadSlots(){
 }
 
 document.getElementById('toStep2').addEventListener('click', async ()=>{
+  if(!enforceLogin()) return;
   if(!vehicle || vehicle.status!=='available') return toast('Vehicle not available','error');
   if(!document.getElementById('bookingDate').value) return toast('Select date','error');
   await loadSlots();
@@ -156,7 +170,7 @@ document.getElementById('toStep3').addEventListener('click',()=>{
 });
 document.getElementById('back2').addEventListener('click',()=> setStep(2));
 document.getElementById('confirmBtn').addEventListener('click', async ()=>{
-  if(!requireAuth()) return;
+  if(!enforceLogin()) return;
   const payload={
     vehicle_id: vehicle.id,
     booking_date: document.getElementById('bookingDate').value,
@@ -173,7 +187,13 @@ document.getElementById('confirmBtn').addEventListener('click', async ()=>{
   }catch(e){ toast(e.message,'error'); btn.disabled=false; btn.textContent='Confirm Test Drive'; }
 });
 
-document.addEventListener('DOMContentLoaded', loadVehicle);
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadVehicle();
+  if(!localStorage.getItem('atdp_token')){
+    document.getElementById('loginGate').classList.remove('hidden');
+    document.getElementById('loginGate').style.display='flex';
+  }
+});
 </script>
 </body>
 </html>
