@@ -31,9 +31,13 @@
     <div class="review-card">
       <div class="caption-uppercase" style="color:var(--color-brand-primary)">Process Completed — Thank You</div>
       <h1 class="display-sm" style="margin:8px 0">Rate Your Experience</h1>
-      <p class="body-sm muted" id="vehicleInfo">Loading vehicle…</p>
+      <div id="vehicleInfo" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)">
+        <img src="/img/atdp-logo.svg" alt="ATDP Logo" style="width:48px;height:48px;object-fit:contain;background:white;padding:4px;border:1px solid var(--color-hairline-soft)"/>
+        <div><div class="caption-uppercase" style="color:var(--color-brand-primary)">ATDP Review</div><div class="body-sm" id="vehicleInfoText">Loading vehicle…</div></div>
+      </div>
 
       <div id="bookingInfo" class="caption" style="margin:12px 0;padding:12px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)"></div>
+      <div id="bookingSelector" class="hidden" style="margin:12px 0;padding:16px;border:1px solid var(--color-hairline-soft);background:white"></div>
 
       <div class="stars" id="stars">
         <button class="star" data-rating="1"><i class="fa-solid fa-star"></i></button>
@@ -67,26 +71,47 @@ const params = new URLSearchParams(location.search);
 const bookingId = params.get('booking_id');
 const vehicleId = params.get('vehicle_id');
 
+function setVehicleInfo(text){
+  const el = document.getElementById('vehicleInfoText');
+  if(el) el.textContent = text;
+}
 async function init(){
   if(!requireAuth()) return;
-  // Load booking/vehicle info
   try{
+    // Handle direct /review without params -> show completed bookings to pick
+    if(!bookingId && !vehicleId){
+      setVehicleInfo('Select a completed booking to review');
+      document.getElementById('bookingInfo').innerHTML = `<span class="caption">No booking selected — choose from your completed bookings below.</span>`;
+      const {bookings}= await BookingAPI.list({status:'completed', limit:20});
+      const sel = document.getElementById('bookingSelector');
+      if(!bookings.length){
+        sel.innerHTML = `<div class="caption" style="text-align:center;padding:12px">No completed bookings yet. Complete a test drive first, then review.<br/><a href="dashboard.html" class="btn btn-secondary btn-small" style="margin-top:8px">Go to Dashboard</a></div>`;
+      } else {
+        sel.innerHTML = `<div class="caption-uppercase" style="color:var(--color-brand-primary);margin-bottom:8px">Your completed bookings</div>` + bookings.map(b=> `
+          <a href="review.html?booking_id=${b.id}&vehicle_id=${b.vehicle_id}" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--color-hairline-soft);margin-bottom:8px;background:var(--color-bg-off-white);text-decoration:none;color:inherit">
+            <img src="/img/atdp-logo.svg" alt="ATDP" style="width:36px;height:36px;object-fit:contain;background:white;padding:3px;border:1px solid var(--color-hairline-soft)"/>
+            <div style="flex:1"><strong>${b.brand_name} ${b.vehicle_model}</strong><br/><span class="caption">${b.showroom_name} • ${b.booking_date} ${b.time_slot}</span></div>
+            <span class="btn btn-primary btn-small">Review</span>
+          </a>
+        `).join('');
+      }
+      sel.classList.remove('hidden');
+      return;
+    }
     if(bookingId){
       const {booking}= await BookingAPI.get(bookingId);
-      document.getElementById('vehicleInfo').textContent = `${booking.brand_name} ${booking.vehicle_model} — ${booking.showroom_name}`;
+      setVehicleInfo(`${booking.brand_name} ${booking.vehicle_model} — ${booking.showroom_name}`);
       document.getElementById('bookingInfo').innerHTML = `<strong>Booking #${booking.id}</strong> • ${booking.booking_date} ${booking.time_slot}<br/><span class="badge badge-${booking.status}">${booking.status}</span> ${booking.admin_message ? `<br/>Admin: ${booking.admin_message}` : ''}`;
-      // check if already reviewed
       const {reviews}= await api(`/api/reviews?booking_id=${bookingId}`).then(r=>r).catch(()=>({reviews:[]}));
       if(reviews && reviews.length){ document.getElementById('existingReviews').innerHTML = `<div class="caption" style="padding:12px;background:#E8F5E9;border-left:3px solid var(--color-success)">You already reviewed this booking: ${reviews[0].rating} stars — ${reviews[0].comment||'No comment'}</div>`; }
-      // if booking not completed, still allow but warn
       if(booking.status!=='completed'){
         document.getElementById('bookingInfo').innerHTML += `<div class="caption" style="margin-top:6px;color:var(--color-warning)">Note: Ideally review after completion. You can still submit.</div>`;
       }
     } else if(vehicleId){
       const {vehicle}= await VehicleAPI.get(vehicleId);
-      document.getElementById('vehicleInfo').textContent = `${vehicle.brand_name} ${vehicle.model} — ${formatINR(vehicle.price)}`;
+      setVehicleInfo(`${vehicle.brand_name} ${vehicle.model} — ${formatINR(vehicle.price)}`);
+      document.getElementById('bookingInfo').innerHTML = `<span class="caption">Vehicle review — no specific booking</span>`;
     }
-    // load recent reviews for vehicle
     if(vehicleId || bookingId){
       const vid = vehicleId || (await BookingAPI.get(bookingId).then(d=>d.booking.vehicle_id));
       const {avg, recent} = await api(`/api/reviews/vehicle/${vid}/summary`);
@@ -95,7 +120,7 @@ async function init(){
         document.getElementById('existingReviews').innerHTML += recent.map(r=> `<div style="padding:8px;border:1px solid var(--color-hairline-soft);margin-top:8px"><strong>${r.user_name}</strong> — ${'★'.repeat(r.rating)}<br/><span class="caption">${r.comment||''}</span></div>`).join('');
       }
     }
-  }catch(e){ toast(e.message,'error'); }
+  }catch(e){ toast(e.message,'error'); setVehicleInfo('Unable to load — please select from dashboard'); }
 }
 
 document.querySelectorAll('.star').forEach(btn=>{
