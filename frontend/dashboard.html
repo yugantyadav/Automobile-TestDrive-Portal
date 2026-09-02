@@ -95,6 +95,7 @@ async function loadBookings(page=1){
           </td>
           <td>
             ${b.status==='pending'||b.status==='approved' ? `<button class="btn btn-secondary btn-small" onclick="cancelBooking(${b.id})">Cancel</button>` : ''}
+            ${b.status==='completed' ? `<a href="review.html?booking_id=${b.id}&vehicle_id=${b.vehicle_id}" class="btn btn-primary btn-small" style="margin-top:4px;display:inline-flex"><i class="fa-solid fa-star"></i> Review</a>` : ''}
             <button class="btn btn-small" style="border:1px solid #E5E5E5;margin-top:4px" onclick="viewBooking(${b.id})">View</button>
           </td>
         </tr>

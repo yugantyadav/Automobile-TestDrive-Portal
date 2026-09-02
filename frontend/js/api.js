@@ -1,5 +1,5 @@
-// ATDP API wrapper
-const API_BASE = location.origin; // same origin when served by backend
+// ATDP API wrapper — frontend on :3000, backend on :5000 (different ports = separate localStorage for simultaneous admin/user)
+const API_BASE = (location.port === '3000') ? 'http://localhost:5000' : location.origin;
 function api(path, opts={}) {
   const token = localStorage.getItem('atdp_token');
   const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
@@ -48,6 +48,11 @@ const AdminAPI = {
   dashboard: ()=> api('/api/admin/dashboard'),
   users: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/admin/users${qs?'?'+qs:''}`)},
   bookings: (params={})=>{ const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/admin/bookings${qs?'?'+qs:''}`)},
+};
+const ReviewAPI = {
+  list: (params={})=> { const qs=new URLSearchParams(cleanParams(params)).toString(); return api(`/api/reviews${qs?'?'+qs:''}`)},
+  summary: (vehicle_id)=> api(`/api/reviews/vehicle/${vehicle_id}/summary`),
+  create: (payload)=> api('/api/reviews',{method:'POST',body:JSON.stringify(payload)}),
 };
 function formatINR(amount){
   return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(amount);

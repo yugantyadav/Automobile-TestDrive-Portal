@@ -96,9 +96,20 @@ async function loadVehicle(){
           <p class="body-sm">${v.description||''}</p>
           ${v.colors?`<div class="caption mt-16"><strong>Colours:</strong> ${Array.isArray(v.colors)?v.colors.join(' • '):v.colors}</div>`:''}
           <div class="caption mt-16" style="padding:10px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)">Status: <strong style="color:${v.status==='available'?'var(--color-success)':'var(--color-error)'}">${v.status}</strong> ${v.status!=='available' ? ' — Cannot be booked' : ''}</div>
+          <div id="vehicleReviews" class="mt-16" style="padding:12px;border:1px solid var(--color-hairline-soft);background:var(--color-bg-off-white)"><span class="caption">Loading reviews...</span></div>
         </div>
       </div>
     `;
+    // load reviews summary
+    try{
+      const r = await ReviewAPI.summary(v.id);
+      const el = document.getElementById('vehicleReviews');
+      if(r.count===0) el.innerHTML = `<span class="caption">No reviews yet — be the first after your test drive!</span>`;
+      else {
+        const stars = '★'.repeat(Math.round(r.avg)) + '☆'.repeat(5-Math.round(r.avg));
+        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span class="caption" style="font-weight:700;color:var(--color-brand-primary)">${stars} ${r.avg}/5 (${r.count})</span><a href="review.html?vehicle_id=${v.id}" class="caption" style="text-decoration:underline">Write a review</a></div>` + (r.recent||[]).map(x=> `<div style="margin-top:8px;padding:8px;background:white;border:1px solid var(--color-hairline-soft)"><strong class="caption">${x.user_name}</strong> <span style="color:var(--color-brand-primary)">${'★'.repeat(x.rating)}</span><br/><span class="caption">${x.comment||''}</span></div>`).join('');
+      }
+    }catch{ document.getElementById('vehicleReviews').innerHTML = ''; }
     // showroom box
     const sb=document.getElementById('autoShowroomBox');
     if(showroom){

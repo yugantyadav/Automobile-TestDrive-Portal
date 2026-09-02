@@ -85,6 +85,19 @@ function initDb() {
       UNIQUE(vehicle_id, showroom_id, booking_date, time_slot),
       UNIQUE(user_id, booking_date, time_slot)
     );
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      vehicle_id INTEGER NOT NULL,
+      booking_id INTEGER,
+      rating INTEGER NOT NULL CHECK(rating >=1 AND rating <=5),
+      comment TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL ON UPDATE CASCADE,
+      UNIQUE(user_id, booking_id)
+    );
     `;
   }
   db.exec(schema);

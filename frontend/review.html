@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Review — ATDP</title>
+<link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+  .stars{display:flex;gap:8px;justify-content:center;margin:20px 0}
+  .star{font-size:32px;color:var(--color-hairline);cursor:pointer;transition:color 0.2s, transform 0.2s;background:none;border:none}
+  .star.active{color:var(--color-brand-primary)}
+  .star:hover{transform:scale(1.15)}
+  .review-card{max-width:640px;margin:40px auto;background:white;border:1px solid var(--color-hairline-soft);padding:32px}
+</style>
+</head>
+<body>
+<div id="toast-root"></div>
+<header class="header">
+  <div class="header-left">
+    <button class="hamburger" id="hamburger"><span></span></button>
+    <a href="index.html" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M5 16L3 8h4l1.5 2H12l1.5-2H18l-2 8H5zm2.2-2h9.6l1-4h-2.3l-1.5 2H10.2L8.7 10H6.2l1 4z"/><circle cx="7.5" cy="17.5" r="1.2"/><circle cx="15.5" cy="17.5" r="1.2"/></svg></span> ATDP</a>
+    <nav class="nav-links"><a href="vehicles.html">Vehicles</a><a href="dashboard.html">Dashboard</a></nav>
+  </div>
+  <div class="header-right"><div id="authLinks"><a href="login.html" class="btn btn-secondary">Login</a></div><div id="userNav" class="hidden"></div></div>
+</header>
+<nav class="mobile-nav" id="mobileNav"><a href="index.html">Home</a><a href="vehicles.html">Vehicles</a><a href="dashboard.html">Dashboard</a><div id="mobileAuth"></div></nav>
+
+<main class="section">
+  <div class="container">
+    <a href="dashboard.html" class="caption" style="display:inline-flex;gap:8px;align-items:center"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+    <div class="review-card">
+      <div class="caption-uppercase" style="color:var(--color-brand-primary)">Process Completed — Thank You</div>
+      <h1 class="display-sm" style="margin:8px 0">Rate Your Experience</h1>
+      <p class="body-sm muted" id="vehicleInfo">Loading vehicle…</p>
+
+      <div id="bookingInfo" class="caption" style="margin:12px 0;padding:12px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)"></div>
+
+      <div class="stars" id="stars">
+        <button class="star" data-rating="1"><i class="fa-solid fa-star"></i></button>
+        <button class="star" data-rating="2"><i class="fa-solid fa-star"></i></button>
+        <button class="star" data-rating="3"><i class="fa-solid fa-star"></i></button>
+        <button class="star" data-rating="4"><i class="fa-solid fa-star"></i></button>
+        <button class="star" data-rating="5"><i class="fa-solid fa-star"></i></button>
+      </div>
+      <p class="caption text-center" id="ratingLabel" style="color:var(--color-brand-primary);min-height:18px">Select 1-5 stars</p>
+
+      <div class="field">
+        <label>Any Suggestions <span style="color:var(--color-text-muted);font-weight:400">(optional)</span></label>
+        <textarea id="comment" rows="4" placeholder="Tell us what you loved, what could be better, suggestions for the showroom..." style="border:1px solid var(--color-hairline);padding:12px"></textarea>
+      </div>
+
+      <button id="submitReview" class="btn btn-primary" style="width:100%;margin-top:16px" disabled>Submit Review</button>
+      <p class="caption text-center" style="margin-top:8px">Your feedback helps Navi Mumbai showrooms improve</p>
+
+      <div id="existingReviews" class="mt-24"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer"><div class="footer-bottom"><span>© 2026 ATDP</span><a href="index.html">Home</a></div></footer>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script>
+let selectedRating = 0;
+const params = new URLSearchParams(location.search);
+const bookingId = params.get('booking_id');
+const vehicleId = params.get('vehicle_id');
+
+async function init(){
+  if(!requireAuth()) return;
+  // Load booking/vehicle info
+  try{
+    if(bookingId){
+      const {booking}= await BookingAPI.get(bookingId);
+      document.getElementById('vehicleInfo').textContent = `${booking.brand_name} ${booking.vehicle_model} — ${booking.showroom_name}`;
+      document.getElementById('bookingInfo').innerHTML = `<strong>Booking #${booking.id}</strong> • ${booking.booking_date} ${booking.time_slot}<br/><span class="badge badge-${booking.status}">${booking.status}</span> ${booking.admin_message ? `<br/>Admin: ${booking.admin_message}` : ''}`;
+      // check if already reviewed
+      const {reviews}= await api(`/api/reviews?booking_id=${bookingId}`).then(r=>r).catch(()=>({reviews:[]}));
+      if(reviews && reviews.length){ document.getElementById('existingReviews').innerHTML = `<div class="caption" style="padding:12px;background:#E8F5E9;border-left:3px solid var(--color-success)">You already reviewed this booking: ${reviews[0].rating} stars — ${reviews[0].comment||'No comment'}</div>`; }
+      // if booking not completed, still allow but warn
+      if(booking.status!=='completed'){
+        document.getElementById('bookingInfo').innerHTML += `<div class="caption" style="margin-top:6px;color:var(--color-warning)">Note: Ideally review after completion. You can still submit.</div>`;
+      }
+    } else if(vehicleId){
+      const {vehicle}= await VehicleAPI.get(vehicleId);
+      document.getElementById('vehicleInfo').textContent = `${vehicle.brand_name} ${vehicle.model} — ${formatINR(vehicle.price)}`;
+    }
+    // load recent reviews for vehicle
+    if(vehicleId || bookingId){
+      const vid = vehicleId || (await BookingAPI.get(bookingId).then(d=>d.booking.vehicle_id));
+      const {avg, recent} = await api(`/api/reviews/vehicle/${vid}/summary`);
+      if(avg) document.getElementById('existingReviews').innerHTML += `<div class="divider"></div><div class="caption">Average: ${avg} stars from recent reviews</div>`;
+      if(recent && recent.length){
+        document.getElementById('existingReviews').innerHTML += recent.map(r=> `<div style="padding:8px;border:1px solid var(--color-hairline-soft);margin-top:8px"><strong>${r.user_name}</strong> — ${'★'.repeat(r.rating)}<br/><span class="caption">${r.comment||''}</span></div>`).join('');
+      }
+    }
+  }catch(e){ toast(e.message,'error'); }
+}
+
+document.querySelectorAll('.star').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    selectedRating = parseInt(btn.dataset.rating);
+    document.querySelectorAll('.star').forEach(s=> s.classList.toggle('active', parseInt(s.dataset.rating) <= selectedRating));
+    const labels = ['','Poor','Fair','Good','Very Good','Excellent'];
+    document.getElementById('ratingLabel').textContent = labels[selectedRating] + ` (${selectedRating}/5)`;
+    document.getElementById('submitReview').disabled = false;
+  });
+});
+
+document.getElementById('submitReview').addEventListener('click', async ()=>{
+  if(!selectedRating){ toast('Please select stars','error'); return; }
+  const comment = document.getElementById('comment').value.trim() || undefined;
+  const payload = { vehicle_id: parseInt(vehicleId) || (await BookingAPI.get(bookingId).then(d=>d.booking.vehicle_id)), rating: selectedRating, comment, booking_id: bookingId ? parseInt(bookingId) : undefined };
+  // if vehicleId missing, fetch from booking
+  if(!payload.vehicle_id && bookingId){
+    try{ const {booking}= await BookingAPI.get(bookingId); payload.vehicle_id = booking.vehicle_id; }catch{}
+  }
+  if(!payload.vehicle_id){ toast('Vehicle not found','error'); return; }
+  try{
+    await api('/api/reviews', {method:'POST', body: JSON.stringify(payload)});
+    toast('Thank you! Review submitted','success');
+    setTimeout(()=> location.href='dashboard.html', 900);
+  }catch(e){ toast(e.message,'error'); }
+});
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
