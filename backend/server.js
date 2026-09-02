@@ -31,11 +31,19 @@ app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString(), service: 'ATDP Backend' }));
 
-// Serve frontend
+// Serve frontend — support extensionless URLs (/dashboard -> dashboard.html)
 const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use(express.static(frontendPath));
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ message: 'API route not found' });
+  const fs = require('fs');
+  // Try exact file
+  const filePath = path.join(frontendPath, req.path);
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) return res.sendFile(filePath);
+  // Try with .html extension (e.g., /dashboard -> dashboard.html)
+  const htmlPath = path.join(frontendPath, req.path + '.html');
+  if (fs.existsSync(htmlPath)) return res.sendFile(htmlPath);
+  // Special case: /dashboard#contact etc. handled by frontend, fallback to index
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
