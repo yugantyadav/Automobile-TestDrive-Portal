@@ -92,6 +92,7 @@ input,select,textarea{font-family:inherit}
   animation:iconPhasing 1.4s cubic-bezier(.30,0,.75,1) both;
 }
 .preloader-icon svg{width:32px;height:32px;fill:var(--color-brand-primary)}
+.preloader-icon img{width:36px;height:36px;object-fit:contain;display:block;border-radius:2px}
 .preloader-atdp{
   font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;letter-spacing:12px;
   color:var(--color-text-ink);margin-left:12px;
