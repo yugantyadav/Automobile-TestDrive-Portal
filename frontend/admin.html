@@ -42,6 +42,7 @@
     <!-- Tabs -->
     <div style="display:flex;gap:12px;margin-top:32px;flex-wrap:wrap">
       <button class="btn btn-primary tabBtn" data-tab="bookings">Bookings</button>
+      <button class="btn btn-secondary tabBtn" data-tab="reviews">Reviews</button>
       <button class="btn btn-secondary tabBtn" data-tab="vehicles">Vehicles</button>
       <button class="btn btn-secondary tabBtn" data-tab="showrooms">Showrooms</button>
       <button class="btn btn-secondary tabBtn" data-tab="users">Users</button>
@@ -96,6 +97,17 @@
     <div id="tab-users" class="tab-panel hidden mt-16">
       <div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead><tbody id="adminUsers"></tbody></table></div>
       <div id="uPag" class="text-center mt-16"></div>
+    </div>
+
+    <!-- Reviews Tab -->
+    <div id="tab-reviews" class="tab-panel hidden mt-16">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h4 class="title-md" style="font-size:14px">Customer Reviews</h4>
+        <button class="btn btn-secondary btn-small" onclick="loadAdminReviews()">Refresh</button>
+      </div>
+      <div id="reviewsSummary" class="caption" style="margin-bottom:12px;padding:12px;background:var(--color-bg-off-white);border:1px solid var(--color-hairline-soft)">Loading…</div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>User</th><th>Vehicle</th><th>Rating</th><th>Comment (Any Suggestions)</th><th>Date</th><th>Actions</th></tr></thead><tbody id="adminReviews"></tbody></table></div>
+      <div id="reviewsPag" class="text-center mt-16"></div>
     </div>
 
   </div>
@@ -282,6 +294,34 @@ async function deleteUser(id){
   const token=localStorage.getItem('atdp_token');
   try{ const r=await fetch(`/api/admin/users/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}}); const data=await r.json(); if(!r.ok) throw new Error(data.message); toast('User deleted','success'); loadUsersAdmin(1); loadDashboard(); }catch(e){ toast(e.message,'error'); }
 }
+async function loadAdminReviews(page=1){
+  try{
+    const {reviews, pagination} = await ReviewAPI.list({page, limit:20});
+    // summary
+    let avgText = 'No reviews yet';
+    if(reviews.length){
+      const avg = (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1);
+      avgText = `Average ${avg} stars from ${pagination.total} review(s)`;
+    }
+    document.getElementById('reviewsSummary').innerHTML = `${avgText} • <span class="badge badge-approved">${pagination.total} total</span>`;
+    document.getElementById('adminReviews').innerHTML = reviews.map(r=> `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.user_name}<br/><span class="caption">${r.brand_name} ${r.vehicle_model}</span></td>
+        <td><span style="color:var(--color-brand-primary);font-weight:700">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span><br/><span class="caption">${r.rating}/5</span></td>
+        <td style="max-width:320px;word-wrap:break-word">${r.comment ? r.comment : '<span class="caption muted">No suggestion</span>'}</td>
+        <td class="caption">${new Date(r.created_at).toLocaleDateString()}<br/>booking #${r.booking_id||'-'}</td>
+        <td><button class="btn btn-secondary btn-small" onclick="deleteReview(${r.id})">Delete</button></td>
+      </tr>
+    `).join('') || `<tr><td colspan="7" class="muted" style="text-align:center;padding:20px">No reviews yet — customers will appear here after completing test drives</td></tr>`;
+    let h=''; for(let i=1;i<=pagination.totalPages;i++) h+=`<button class="btn ${i===pagination.page?'btn-primary':'btn-secondary'}" style="margin:4px" onclick="loadAdminReviews(${i})">${i}</button>`;
+    document.getElementById('reviewsPag').innerHTML=h;
+  }catch(e){ toast(e.message,'error'); }
+}
+async function deleteReview(id){
+  if(!confirm('Delete review #'+id+'?')) return;
+  try{ await api(`/api/reviews/${id}`,{method:'DELETE'}); toast('Review deleted','success'); loadAdminReviews(1); }catch(e){ toast(e.message,'error'); }
+}
 // Tabs
 document.querySelectorAll('.tabBtn').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -293,6 +333,7 @@ document.querySelectorAll('.tabBtn').forEach(btn=>{
     if(btn.dataset.tab==='showrooms') loadShowroomsAdmin();
     if(btn.dataset.tab==='users') loadUsersAdmin(1);
     if(btn.dataset.tab==='bookings') loadAdminBookings(1);
+    if(btn.dataset.tab==='reviews') loadAdminReviews(1);
   });
 });
 // Forms
