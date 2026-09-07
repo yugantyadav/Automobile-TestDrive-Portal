@@ -68,8 +68,21 @@
 <script>
 let selectedRating = 0;
 const params = new URLSearchParams(location.search);
-const bookingId = params.get('booking_id');
-const vehicleId = params.get('vehicle_id');
+let bookingId = params.get('booking_id');
+let vehicleId = params.get('vehicle_id');
+let selectedBooking = null;
+
+function selectBooking(bid, vid, brandModel, showroom, dateSlot){
+  bookingId = bid; vehicleId = vid;
+  selectedBooking = {id: bid, vehicleId: vid, brandModel, showroom, dateSlot};
+  setVehicleInfo(`${brandModel} — ${showroom}`);
+  document.getElementById('bookingInfo').innerHTML = `<strong>Booking #${bid}</strong> • ${dateSlot}<br/><span class="badge badge-completed">selected</span> Ready to review`;
+  document.getElementById('bookingSelector').classList.add('hidden');
+  document.getElementById('submitReview').disabled = selectedRating === 0;
+  toast(`Selected ${brandModel} for review`,'success');
+  // update URL without reload
+  history.replaceState(null, '', `review.html?booking_id=${bid}&vehicle_id=${vid}`);
+}
 
 function setVehicleInfo(text){
   const el = document.getElementById('vehicleInfoText');
@@ -87,15 +100,18 @@ async function init(){
       if(!bookings.length){
         sel.innerHTML = `<div class="caption" style="text-align:center;padding:12px">No completed bookings yet. Complete a test drive first, then review.<br/><a href="dashboard.html" class="btn btn-secondary btn-small" style="margin-top:8px">Go to Dashboard</a></div>`;
       } else {
-        sel.innerHTML = `<div class="caption-uppercase" style="color:var(--color-brand-primary);margin-bottom:8px">Your completed bookings</div>` + bookings.map(b=> `
-          <a href="review.html?booking_id=${b.id}&vehicle_id=${b.vehicle_id}" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--color-hairline-soft);margin-bottom:8px;background:var(--color-bg-off-white);text-decoration:none;color:inherit">
+        sel.innerHTML = `<div class="caption-uppercase" style="color:var(--color-brand-primary);margin-bottom:8px">Your completed bookings — click to select</div>` + bookings.map(b=> `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--color-hairline-soft);margin-bottom:8px;background:var(--color-bg-off-white)">
             <img src="/img/atdp-logo.svg" alt="ATDP" style="width:36px;height:36px;object-fit:contain;background:white;padding:3px;border:1px solid var(--color-hairline-soft)"/>
             <div style="flex:1"><strong>${b.brand_name} ${b.vehicle_model}</strong><br/><span class="caption">${b.showroom_name} • ${b.booking_date} ${b.time_slot}</span></div>
-            <span class="btn btn-primary btn-small">Review</span>
-          </a>
+            <button class="btn btn-primary btn-small" onclick="selectBooking('${b.id}','${b.vehicle_id}','${(b.brand_name+' '+b.vehicle_model).replace(/'/g,"\\'")}','${b.showroom_name.replace(/'/g,"\\'")}','${b.booking_date} ${b.time_slot}')">Select</button>
+          </div>
         `).join('');
       }
       sel.classList.remove('hidden');
+      // disable submit until booking selected
+      document.getElementById('submitReview').disabled = true;
+      document.getElementById('ratingLabel').textContent = 'Select a booking above, then rate 1-5 stars';
       return;
     }
     if(bookingId){
@@ -134,14 +150,15 @@ document.querySelectorAll('.star').forEach(btn=>{
 });
 
 document.getElementById('submitReview').addEventListener('click', async ()=>{
+  if(!bookingId){ toast('Please select a completed booking above to review','error'); document.getElementById('bookingSelector')?.scrollIntoView({behavior:'smooth'}); return; }
   if(!selectedRating){ toast('Please select stars','error'); return; }
   const comment = document.getElementById('comment').value.trim() || undefined;
-  const payload = { vehicle_id: parseInt(vehicleId) || (await BookingAPI.get(bookingId).then(d=>d.booking.vehicle_id)), rating: selectedRating, comment, booking_id: bookingId ? parseInt(bookingId) : undefined };
-  // if vehicleId missing, fetch from booking
-  if(!payload.vehicle_id && bookingId){
-    try{ const {booking}= await BookingAPI.get(bookingId); payload.vehicle_id = booking.vehicle_id; }catch{}
+  let vid = vehicleId ? parseInt(vehicleId) : null;
+  if(!vid && bookingId){
+    try{ const {booking}= await BookingAPI.get(bookingId); vid = booking.vehicle_id; }catch{}
   }
-  if(!payload.vehicle_id){ toast('Vehicle not found','error'); return; }
+  if(!vid){ toast('Vehicle not found','error'); return; }
+  const payload = { vehicle_id: vid, rating: selectedRating, comment, booking_id: parseInt(bookingId) };
   try{
     await api('/api/reviews', {method:'POST', body: JSON.stringify(payload)});
     toast('Thank you! Review submitted','success');
